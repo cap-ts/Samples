@@ -1,0 +1,33 @@
+# ReferenceDataService: the cache of reads by key. Watch the X-Cache response header.
+
+@server = http://localhost:5005/odata/v4/reference-data
+@auth = Basic alice:alice
+
+
+### X-Cache: MISS, then HIT on the second call (time to live 600 s, from the service)
+GET {{server}}/CustomerGroups('G100')
+Authorization: {{auth}}
+
+###
+GET {{server}}/CustomerGroups('G100')
+Authorization: {{auth}}
+
+### Two keys: MISS
+GET {{server}}/CustomerNames?$filter=ID in ('C001','C002')
+Authorization: {{auth}}
+
+### Three keys, two cached: X-Cache: PARTIAL; hits=2; misses=1 (only C003 goes to the backend)
+GET {{server}}/CustomerNames?$filter=ID in ('C001','C002','C003')
+Authorization: {{auth}}
+
+### The key read behind $expand is cached too: CustomerGroups('G300') is a HIT the second time
+GET {{server}}/CustomerNames('C004')?$expand=_Group
+Authorization: {{auth}}
+
+### @remote.cache: false: never cached, no X-Cache header
+GET {{server}}/Stock('P001')
+Authorization: {{auth}}
+
+### @remote.cache.ttl: 60 on the entity
+GET {{server}}/Categories('ELEC')
+Authorization: {{auth}}

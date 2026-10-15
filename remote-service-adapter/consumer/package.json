@@ -1,0 +1,147 @@
+{
+  "name": "rsa-consumer",
+  "version": "1.0.0",
+  "description": "Owns almost no data: serves projections on four remote systems (OData V4, OData V2, SOAP) and its own database through @cap-ts/remote-service-adapter.",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-ts/remote-service-adapter": "^0.2.3",
+    "@cap-ts/soap-adapter": "^0.4.0",
+    "@sap-cloud-sdk/connectivity": "^4.7.0",
+    "@sap-cloud-sdk/http-client": "^4.7.0",
+    "@sap-cloud-sdk/resilience": "^4.7.0",
+    "@sap/cds": "^10",
+    "express": "^4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^3",
+    "@cap-js/cds-types": "^0.18.0"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch",
+    "watch:trace": "DEBUG=remote-service LOG_TO_FILE=true PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch"
+  },
+  "cds": {
+    "requires": {
+      "CustomerService": {
+        "kind": "odata",
+        "model": "srv/external/CustomerService",
+        "[development]": {
+          "credentials": {
+            "url": "http://localhost:9009/odata/v4/customer",
+            "username": "alice",
+            "password": "alice"
+          }
+        },
+        "[production]": {
+          "credentials": {
+            "destination": "RSA_SAMPLES_CUSTOMERS"
+          }
+        }
+      },
+      "ProductService": {
+        "kind": "odata-v2",
+        "model": "srv/external/ProductService",
+        "[development]": {
+          "credentials": {
+            "url": "http://localhost:8008/odata/v2/product",
+            "username": "alice",
+            "password": "alice"
+          }
+        },
+        "[production]": {
+          "credentials": {
+            "destination": "RSA_SAMPLES_PRODUCTS"
+          }
+        }
+      },
+      "SalesService": {
+        "kind": "odata",
+        "model": "srv/external/SalesService",
+        "[development]": {
+          "credentials": {
+            "url": "http://localhost:7007/odata/v4/sales",
+            "username": "alice",
+            "password": "alice"
+          }
+        },
+        "[production]": {
+          "credentials": {
+            "destination": "RSA_SAMPLES_SALES"
+          }
+        }
+      },
+      "PartnerDirectory": {
+        "kind": "soap",
+        "wsdl": "srv/external/wsdl/PartnerDirectory.wsdl",
+        "credentials": {
+          "destination": "RSA_SAMPLES_PARTNERS",
+          "path": "/soap/partners"
+        }
+      },
+      "auth": {
+        "kind": "mocked",
+        "users": {
+          "alice": {
+            "password": "alice",
+            "roles": [
+              "admin"
+            ]
+          },
+          "bob": {
+            "password": "bob",
+            "attr": {
+              "CompanyCode": "1000"
+            }
+          },
+          "kim": {
+            "password": "kim",
+            "attr": {
+              "CompanyCode": "2000"
+            }
+          },
+          "sam": {
+            "password": "sam"
+          }
+        }
+      }
+    },
+    "query": {
+      "limit": {
+        "default": 1000,
+        "max": 5000
+      },
+      "remote": {
+        "pagesInParallel": 3,
+        "search": {
+          "maxRows": 5000
+        },
+        "semiJoin": {
+          "maxRows": 5000,
+          "pageSize": 1000
+        },
+        "join": {
+          "maxRows": 5000
+        },
+        "cache": {
+          "aggregates": true,
+          "semiJoins": true,
+          "ttl": 120,
+          "staleWhileRevalidate": 30,
+          "perUser": false,
+          "maxEntries": 500,
+          "maxRows": 100000
+        }
+      }
+    },
+    "log": {
+      "levels": {
+        "remote": "info"
+      }
+    }
+  }
+}

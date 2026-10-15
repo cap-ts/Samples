@@ -1,0 +1,79 @@
+{
+  "name": "soap-consumer",
+  "version": "1.0.0",
+  "description": "Three SOAP web services exposed as OData-style entities with @cap-ts/soap-adapter, and a CAP service that uses them in-process.",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-ts/soap-adapter": "^0.4.0",
+    "@sap-cloud-sdk/connectivity": "^4.7.0",
+    "@sap-cloud-sdk/http-client": "^4.7.0",
+    "@sap/cds": "^10",
+    "cors": "^2.8.6",
+    "express": "^4",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@cap-js/cds-types": "^0.18.0"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "PORT=4004 destinations='[{\"name\":\"SOAP_SAMPLES_CATALOG\",\"url\":\"http://localhost:8091\",\"username\":\"shop\",\"password\":\"shop\"},{\"name\":\"SOAP_SAMPLES_FINANCE\",\"url\":\"http://localhost:8092\",\"username\":\"shop\",\"password\":\"shop\"}]' cds watch",
+    "watch:debug": "DEBUG=soap PORT=4004 destinations='[{\"name\":\"SOAP_SAMPLES_CATALOG\",\"url\":\"http://localhost:8091\",\"username\":\"shop\",\"password\":\"shop\"},{\"name\":\"SOAP_SAMPLES_FINANCE\",\"url\":\"http://localhost:8092\",\"username\":\"shop\",\"password\":\"shop\"}]' cds watch"
+  },
+  "cds": {
+    "requires": {
+      "ProductCatalog": {
+        "kind": "soap",
+        "wsdl": "srv/external/wsdl/ProductCatalog.wsdl",
+        "credentials": {
+          "destination": "SOAP_SAMPLES_CATALOG",
+          "path": "/soap/catalog"
+        }
+      },
+      "ExchangeRates": {
+        "kind": "soap",
+        "wsdl": "srv/external/wsdl/ExchangeRates.wsdl",
+        "credentials": {
+          "destination": "SOAP_SAMPLES_FINANCE",
+          "path": "/soap/rates"
+        },
+        "strict": true,
+        "wsseUser": "sample-shop"
+      },
+      "CountryCodes": {
+        "kind": "soap",
+        "wsdl": "srv/external/wsdl/CountryCodes.wsdl",
+        "credentials": {
+          "destination": "SOAP_SAMPLES_COUNTRIES"
+        },
+        "impl": "srv/adapters/CountryCodes"
+      },
+      "auth": {
+        "kind": "mocked",
+        "users": {
+          "alice": {
+            "password": "alice",
+            "roles": [
+              "finance"
+            ]
+          },
+          "bob": {
+            "password": "bob"
+          }
+        }
+      }
+    },
+    "query": {
+      "soap": {
+        "pushFilters": true,
+        "pageSize": 4,
+        "multiSelectionConcurrency": 2
+      }
+    }
+  }
+}

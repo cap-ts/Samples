@@ -1,0 +1,4 @@
+CompanyCode,DocNo,Note,Released
+1000,100001,Opening balance,true
+1000,100002,Accrual September,false
+2000,200001,Opening balance,true

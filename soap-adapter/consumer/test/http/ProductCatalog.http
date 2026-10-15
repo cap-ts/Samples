@@ -1,0 +1,93 @@
+# ProductCatalog: the routes @cap-ts/soap-adapter mounts for a SOAP service (/soap/<@path>/<Entity>).
+# The producer-catalog terminal logs every SOAP call with its input: compare it with each request below.
+
+@server = http://localhost:4004/soap/catalog
+@auth = Basic alice:alice
+
+
+### -------------------------------------------------------------- Products (FindProducts)
+
+### No query options: the runtime reads every product and answers a page of cds.query.soap.pageSize (4) with an
+### @odata.nextLink. Every row carries Channel: the backend echoes the SOAP header the header() hook sent.
+GET {{server}}/Products
+Authorization: {{auth}}
+
+### The next page: the link repeats the query, $skiptoken advances
+GET {{server}}/Products?$skiptoken=4
+Authorization: {{auth}}
+
+### Everything expressible in the operation's input (Category, SortBy, MaxHits): the request() hook sets
+### __filterPushedDown and the backend's answer is the page (see the SOAP log: Category, SortBy, Descending, MaxHits)
+GET {{server}}/Products?$filter=Category eq 'Furniture'&$orderby=Price desc&$top=2&$select=ProductID,Name,Price
+Authorization: {{auth}}
+
+### Not all of it expressible (contains is case-sensitive, the backend's NameContains is not): the input narrows the
+### answer, the runtime filters, sorts and pages in memory
+GET {{server}}/Products?$filter=contains(Name,'Desk')&$orderby=Name&$select=ProductID,Name
+Authorization: {{auth}}
+
+### The response() hook turned the backend's 'X' into a Boolean; $count is the total before paging
+GET {{server}}/Products?$filter=Discontinued eq true&$select=ProductID,Name,Discontinued&$count=true
+Authorization: {{auth}}
+
+### Nested values (@Soap.path: 'Supplier.Name') and a value with an XML attribute (<Price currency="EUR">: its $value)
+GET {{server}}/Products?$select=ProductID,Price,Currency,SupplierName,SupplierCountry&$top=3
+Authorization: {{auth}}
+
+### Filter functions evaluated by the runtime (startswith, tolower, contains) and in(...) on a field
+GET {{server}}/Products?$filter=startswith(tolower(Name),'office') or contains(Name,'Lamp') or Category in ('Furniture')&$select=ProductID,Name
+Authorization: {{auth}}
+
+### A function on the left of a comparison is not supported by the route's $filter parser: 400 (never ignored)
+GET {{server}}/Products?$filter=length(Name) gt 18
+Authorization: {{auth}}
+
+### Read by key (the key value is compared with the first key element)
+GET {{server}}/Products/P004
+Authorization: {{auth}}
+
+### No row: 404
+GET {{server}}/Products/P999
+Authorization: {{auth}}
+
+### $expand is not a query option of the SOAP routes: 400
+GET {{server}}/Products?$expand=Supplier
+Authorization: {{auth}}
+
+### A malformed $filter: 400 (the parser fails closed, nothing is ignored)
+GET {{server}}/Products?$filter=Name eq
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Stock (GetStock: one product per call)
+
+### One product: one SOAP call; Available is computed by an after('READ') handler of the adapter class
+GET {{server}}/Stock?$filter=ProductID eq 'P004'
+Authorization: {{auth}}
+
+### multipleSelection: false: in(...) on the key is fanned out, one SOAP call per value (see the SOAP log), merged,
+### then ordered and counted
+GET {{server}}/Stock?$filter=ProductID in ('P001','P002','P003')&$orderby=Available desc&$count=true
+Authorization: {{auth}}
+
+### mandatoryFields: a filter without ProductID is 400 MISSING_MANDATORY_FILTER
+GET {{server}}/Stock
+Authorization: {{auth}}
+
+### in(...) on the key beside an OR can not be fanned out: 400 UNSUPPORTED_MULTI_SELECTION_FILTER
+GET {{server}}/Stock?$filter=ProductID in ('P001') or Warehouse eq 'Munich'
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- The same service as CAP serves it
+
+### The SOAP service is also an OData V4 service of the application: reads run the same pipeline
+GET http://localhost:4004/odata/v4/catalog/Products?$filter=Category eq 'Furniture'&$select=ProductID,Name
+Authorization: {{auth}}
+
+### Read only: writes are 405
+POST http://localhost:4004/odata/v4/catalog/Products
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ProductID": "P099", "Name": "New" }

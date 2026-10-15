@@ -1,0 +1,33 @@
+# RestrictedService: CAP's @requires / @restrict on top of the adapter.
+# Users (package.json, cds.requires.auth): alice is admin, bob has CompanyCode 1000, kim 2000, sam none.
+
+@server = http://localhost:5005/odata/v4/restricted
+
+
+### No user: 401
+GET {{server}}/Customers
+
+### admin: every customer
+GET {{server}}/Customers?$select=ID,CompanyCode
+Authorization: Basic alice:alice
+
+### CompanyCode = $user.CompanyCode is pushed to the backend as CompanyCode eq '1000'
+GET {{server}}/Customers?$select=ID,CompanyCode
+Authorization: Basic bob:bob
+
+###
+GET {{server}}/Customers?$select=ID,CompanyCode
+Authorization: Basic kim:kim
+
+### A user without the attribute: CAP writes '1' = '2', the answer is empty and the backend is not called
+GET {{server}}/Customers
+Authorization: Basic sam:sam
+
+### A customer of another company code: 404
+GET {{server}}/Customers('C001')
+Authorization: Basic kim:kim
+
+### $expand of a restricted target is read through RestrictedService.Customers: kim sees only the customers of
+### company code 2000, the others are null
+GET {{server}}/Orders?$select=ID,CustomerID&$expand=_Customer($select=Name)&$top=7
+Authorization: Basic kim:kim

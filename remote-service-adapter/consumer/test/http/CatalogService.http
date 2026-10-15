@@ -1,0 +1,245 @@
+# CatalogService: one layer on four backends (OData V4, OData V2, SOAP, the database).
+# Start the four producers and the consumer first (see ../../README.md).
+# The consumer logs every backend request as "[remote] - GET ..." in its terminal: compare it with each request below.
+
+@server = http://localhost:5005/odata/v4/catalog
+@auth = Basic alice:alice
+
+
+### -------------------------------------------------------------- Mapping (aliases, structures, paths, calculated)
+
+### Aliases, structured fields (City), path columns into another entity (GroupName) and into the database
+### (RegionManager: remote CustomerGroups -> local Regions), calculated columns, boolean flags. No handler code.
+# @name customers
+GET {{server}}/Customers?$top=3
+Authorization: {{auth}}
+
+### left(Name, 1) as Initial: the filter is pushed as startswith(Name,'A')
+GET {{server}}/Customers?$filter=Initial eq 'A'&$select=ID,CustomerName,Initial
+Authorization: {{auth}}
+
+### Boolean flag: IsBlocked eq true is pushed as Status eq 'B'
+GET {{server}}/Customers?$filter=IsBlocked eq true&$select=ID,CustomerName,IsBlocked
+Authorization: {{auth}}
+
+### @remote.pushdown: false: the filter on IsActive stays in memory; City (a structured field) too.
+### The log warns once that $top is not sent: every row matching the pushed part is read.
+GET {{server}}/Customers?$filter=IsActive eq true and City eq 'Berlin'&$select=ID,CustomerName,City
+Authorization: {{auth}}
+
+### Filter on a path column that ends in the consumer's own database
+GET {{server}}/Customers?$filter=RegionManager eq 'Kenji Ito'&$select=ID,DisplayName,Reachable,RegionManager
+Authorization: {{auth}}
+
+### $search on the columns of @cds.search (CustomerName, City, Email, GroupName), case-insensitive (OData V4 source)
+GET {{server}}/Customers?$search=hamburg&$select=ID,CustomerName,City
+Authorization: {{auth}}
+
+### A term with & unquoted: CAP's OData parser ends $search at the &, also when it is sent as %26. This searches for "acme" only
+GET {{server}}/Customers?$search=acme%26zeta&$select=ID,CustomerName
+Authorization: {{auth}}
+
+### The same term quoted (%22): CAP passes it whole, the phrase "acme&zeta" is searched (no customer has it: empty answer)
+GET {{server}}/Customers?$search=%22acme%26zeta%22&$select=ID,CustomerName
+Authorization: {{auth}}
+
+### $expand across associations, nested, with $select inside; _Region is answered by the database
+GET {{server}}/Customers('C001')?$expand=_Group($expand=_Region),_Contacts($select=Name,Role)
+Authorization: {{auth}}
+
+### Navigation by key: the parent is read by key, the association's ON condition becomes the filter
+GET {{server}}/Customers('C001')/_Contacts?$filter=Role eq 'Buyer'
+Authorization: {{auth}}
+
+### The consumer's database: CAP's database service answers
+GET {{server}}/Regions
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Actions and functions (forwarded, no handler)
+
+### Bound function of the same name on CustomerService.Customers
+GET {{server}}/Customers('C002')/creditCheck(Amount=25000)
+Authorization: {{auth}}
+
+### Bound action of the same name: Status becomes 'B'
+POST {{server}}/Customers('C007')/block
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Bound action under another name (@remote.operation: 'block')
+POST {{server}}/Customers('C002')/lock
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Unbound action of another service (@remote.operation: 'CustomerService.setStatus'): reset both customers
+POST {{server}}/setCustomerStatus
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "C007", "Status": "A" }
+
+###
+POST {{server}}/setCustomerStatus
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "C002", "Status": "A" }
+
+
+### -------------------------------------------------------------- OData V2 (producer-products)
+
+### InternalNote is sap:filterable="false" in the V2 $metadata. @remote.filter.local evaluates the filter in memory
+### instead of letting the backend ignore it. The count arrives as text from V2 and is converted.
+GET {{server}}/Products?$filter=contains(InternalNote,'re')&$select=ID,Name,InternalNote&$count=true
+Authorization: {{auth}}
+
+### ReleaseDate is a Date over a date-time source: sent as ReleasedAt ge 2024-03-15T00:00:00Z
+GET {{server}}/Products?$filter=ReleaseDate ge 2024-03-15&$select=ID,Name,ReleaseDate&$orderby=ReleaseDate
+Authorization: {{auth}}
+
+### $search with a path column (CategoryName from Categories)
+GET {{server}}/Products?$search=Desk&$select=ID,Name,CategoryName
+Authorization: {{auth}}
+
+### A count only: one GET Products/$count, no rows move
+GET {{server}}/Products?$top=0&$count=true
+Authorization: {{auth}}
+
+### @remote.paging: false: one request without paging
+GET {{server}}/Categories
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Across systems (producer-sales -> producer-customers / producer-products)
+
+### Path columns into another system, two hops: Orders (producer-sales) -> Customers -> CustomerGroups (producer-customers)
+GET {{server}}/Orders?$select=ID,Title,CustomerName,CustomerRegion,IsClosed&$top=3
+Authorization: {{auth}}
+
+### Filter through two associations, answered by semi-joins hop by hop: no order is read before the keys are known
+GET {{server}}/Orders?$filter=_Customer/_Group/Region eq 'AMER'&$select=ID,CustomerID
+Authorization: {{auth}}
+
+### any() through a to-many association and on into a third system (Items -> Products, OData V2)
+GET {{server}}/Orders?$filter=_Items/any(i:i/_Product/CategoryID eq 'FURN')&$select=ID
+Authorization: {{auth}}
+
+### Filter through a structured field of the target
+GET {{server}}/Items?$filter=_Order/_Customer/City eq 'Berlin'&$select=ID,OrderID,ProductName
+Authorization: {{auth}}
+
+### A key list becomes one read by key per value; the unknown key is simply missing
+GET {{server}}/Orders?$filter=ID in ('O001','O006','O999')&$select=ID,Amount&$count=true
+Authorization: {{auth}}
+
+### An unknown key: 404
+GET {{server}}/Orders('O999')
+Authorization: {{auth}}
+
+### Navigation by key with $orderby and $count, plus a path column of the target (ProductName from producer-products)
+GET {{server}}/Orders('O006')/_Items?$select=ID,ProductName,Quantity&$orderby=Quantity desc&$count=true
+Authorization: {{auth}}
+
+### $orderby on a path column: sorted by the resolved value, $top and $count stay right
+GET {{server}}/Orders?$orderby=CustomerName desc&$top=3&$select=ID,CustomerName&$count=true
+Authorization: {{auth}}
+
+### Paging pushed to the backend
+GET {{server}}/Orders?$skip=8&$top=5&$select=ID&$count=true
+Authorization: {{auth}}
+
+### Expand into another system with $select inside
+GET {{server}}/Orders?$top=2&$select=ID,Title&$expand=_Customer($select=CustomerName,City),_Items($select=ProductName,Quantity)
+Authorization: {{auth}}
+
+### $top, $orderby and $count inside an expand apply per parent: each order gets its own largest item
+GET {{server}}/Orders?$top=3&$select=ID&$expand=_Items($select=ID,Quantity;$orderby=Quantity desc;$top=1;$count=true)
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- JOIN views
+
+### Orders join Items (producer-sales) left join Products (producer-products, OData V2). The view's WHERE (Kind = 'STD'),
+### the ON constant (Status = 'Active') and the expression column LineTotal apply; O004 (a return) is not in the view.
+GET {{server}}/OrderLines?$top=4&$count=true
+Authorization: {{auth}}
+
+### A read by key starts at the source of the key: Items filtered by ID, then its order by the join key
+GET {{server}}/OrderLines('I0007')
+Authorization: {{auth}}
+
+### Currency is pushed to Orders; LineTotal (an expression) is evaluated on the joined rows
+GET {{server}}/OrderLines?$filter=Currency eq 'USD' and LineTotal gt 1000&$select=ID,Title,ProductName,LineTotal
+Authorization: {{auth}}
+
+### $search and $orderby on the joined rows
+GET {{server}}/OrderLines?$search=desk&$orderby=LineTotal desc&$select=ID,ProductName,LineTotal
+Authorization: {{auth}}
+
+### The mixin association of the view, expanded into the CatalogService.Orders projection
+GET {{server}}/OrderLines?$filter=OrderID eq 'O006'&$select=ID&$expand=_Order($select=Title,CustomerName)
+Authorization: {{auth}}
+
+### O004 is a return: outside the view's WHERE, no rows
+GET {{server}}/OrderLines?$filter=OrderID eq 'O004'
+Authorization: {{auth}}
+
+### A SOAP source (producer-partners) joined with an OData source (producer-customers); the filter goes to Customers
+GET {{server}}/PartnerCustomers?$filter=CustomerStatus eq 'A'
+Authorization: {{auth}}
+
+### A remote source joined with the consumer's database
+GET {{server}}/GroupRegions
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Static data, GROUP BY
+
+### @response.data: no backend call
+GET {{server}}/OrderStatus
+Authorization: {{auth}}
+
+### A filter on static data runs in memory
+GET {{server}}/OrderStatus?$filter=code ne 'C'&$count=true
+Authorization: {{auth}}
+
+### GROUP BY over every item, read in pages. The second request of the same filter is X-Cache: HIT
+### (cds.query.remote.cache.aggregates: true in package.json)
+GET {{server}}/ItemStatistics?$orderby=Quantity desc&$top=3
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- SOAP (producer-partners)
+
+### Country eq 'DE' is passed to the operation by the adapter class (srv/external/lib/PartnerDirectory.js)
+GET {{server}}/Partners?$filter=Country eq 'DE'&$select=PartnerID,Name,Country,Email
+Authorization: {{auth}}
+
+### A read by key: the key goes to the operation as PartnerID
+GET {{server}}/Partners('BP01')?$select=PartnerID,Name,Phone
+Authorization: {{auth}}
+
+### Filter functions on a SOAP source run in memory
+GET {{server}}/Partners?$filter=startswith(Name,'D')&$select=PartnerID,Name
+Authorization: {{auth}}
+
+### From SOAP into OData: expand the customer of each partner (producer-customers), with $select of renamed columns
+GET {{server}}/Partners?$select=PartnerID,Name&$expand=_Customer($select=CustomerName,City)
+Authorization: {{auth}}
+
+### Filter through the association from SOAP into OData, on a renamed column of the target (CustomerName <- Name)
+GET {{server}}/Partners?$filter=_Customer/CustomerName eq 'Acme Trading'&$select=PartnerID,Name
+Authorization: {{auth}}
+
+### Filter through the association on a column of the same name
+GET {{server}}/Partners?$filter=_Customer/GroupID eq 'G100'&$select=PartnerID,Name
+Authorization: {{auth}}
+
+### $search on a SOAP source: every partner is read and matched here, case-insensitively
+GET {{server}}/Partners?$search=fuji&$select=PartnerID,Name
+Authorization: {{auth}}

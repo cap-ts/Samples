@@ -1,0 +1,8 @@
+[
+  { "PartnerID": "BP01", "Name": "Acme Trading", "Country": "DE", "Customer": "C001", "Contact": { "Email": "orders@acme.example.com", "Phone": "+49301234501" } },
+  { "PartnerID": "BP02", "Name": "Bright Retail", "Country": "DE", "Customer": "C002", "Contact": { "Email": "buy@bright.example.com", "Phone": "+49891234502" } },
+  { "PartnerID": "BP03", "Name": "Cobalt Wholesale", "Country": "FR", "Customer": "C003", "Contact": { "Email": "info@cobalt.example.com" } },
+  { "PartnerID": "BP04", "Name": "Delta Stores", "Country": "US", "Customer": "C004", "Contact": { "Email": "contact@delta.example.com", "Phone": "+12125550104" } },
+  { "PartnerID": "BP05", "Name": "Northwind Logistics", "Country": "US", "Contact": { "Phone": "+13125550199" } },
+  { "PartnerID": "BP06", "Name": "Fuji Goods", "Country": "JP", "Customer": "C006", "Contact": { "Email": "sales@fuji.example.com" } }
+]

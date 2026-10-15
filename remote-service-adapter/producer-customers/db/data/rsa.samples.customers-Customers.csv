@@ -1,0 +1,9 @@
+ID,Name,Email,Phone,Status,CompanyCode,Address_Street,Address_City,Address_PostalCode,Address_Country,ValidFrom,ValidTo,CreditLimit,GroupID,createdBy
+C001,Acme Trading,orders@acme.example.com,+49301234501,A,1000,Bahnstr. 21,Berlin,10115,DE,2020-01-01,2099-12-31,50000.00,G100,alice
+C002,Bright Retail,buy@bright.example.com,+49891234502,A,1000,Lindenweg 5,Munich,80331,DE,2021-03-01,2099-12-31,20000.00,G100,alice
+C003,Cobalt Wholesale,info@cobalt.example.com,+33112345603,B,1000,Rue Verte 8,Paris,75001,FR,2019-06-01,2099-12-31,100000.00,G200,bob
+C004,Delta Stores,contact@delta.example.com,+12125550104,A,2000,5th Avenue 100,New York,10001,US,2022-01-01,2099-12-31,75000.00,G300,bob
+C005,Echo Markets,hello@echo.example.com,+13125550105,A,2000,Lake Shore 7,Chicago,60601,US,2018-01-01,2024-12-31,5000.00,G300,alice
+C006,Fuji Goods,sales@fuji.example.com,+81312345606,A,3000,Ginza 4,Tokyo,1040061,JP,2023-01-01,2099-12-31,30000.00,G400,carol
+C007,Granite Supply,office@granite.example.com,+49401234507,A,1000,Hafenstr. 3,Hamburg,20457,DE,2020-05-01,2099-12-31,15000.00,G200,alice
+C008,Harbor Imports,desk@harbor.example.com,+61212345608,B,3000,George St 9,Sydney,2000,AU,2021-09-01,2099-12-31,8000.00,G400,carol

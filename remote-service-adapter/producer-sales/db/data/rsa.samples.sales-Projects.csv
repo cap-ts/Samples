@@ -1,0 +1,4 @@
+ProjectID,Name,Customer,StartDate,EndDate
+PR01,Store rollout Berlin,C001,2026-09-01,2026-12-31
+PR02,Inventory audit,C002,2026-10-01,2026-10-31
+PR03,New York fit-out,C004,2026-08-01,2027-03-31

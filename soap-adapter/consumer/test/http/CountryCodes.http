@@ -1,0 +1,13 @@
+# CountryCodes: an adapter class named by cds.requires.CountryCodes.impl, answering from a mock() (no SOAP call).
+
+@server = http://localhost:4004/soap/countrycodes
+@auth = Basic alice:alice
+
+
+### The mock's rows
+GET {{server}}/Countries
+Authorization: {{auth}}
+
+### A read by key: the mock filters itself (its answer is final: no in-memory $filter after a mock)
+GET {{server}}/Countries/SE
+Authorization: {{auth}}

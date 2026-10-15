@@ -1,0 +1,35 @@
+# ExchangeRates: a TypeScript adapter class named by @Soap.adapter, a WS-Security SOAP header, @requires on the routes.
+# Users: alice has the role finance, bob has none.
+
+@server = http://localhost:4004/soap/rates
+
+
+### No user: 401
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR'
+
+### A user without the role finance: 403
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR'
+Authorization: Basic bob:bob
+
+### The header() hook sends <wsse:Security><wsse:UsernameToken><wsse:Username>sample-shop</...> (the producer-finance
+### terminal shows the user); `From` is a reserved word in CDS: FromCurrency reads the response field From (@Soap.path).
+### ValidOn (xsd:date) is answered as a Date: 2026-10-14
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR'
+Authorization: Basic alice:alice
+
+### Fan-out over three From currencies (two SOAP calls at a time: cds.query.soap.multiSelectionConcurrency), each call
+### with its own SOAP header; then $orderby, $top, $count and $select on the merged rows
+GET {{server}}/Rates?$filter=FromCurrency in ('EUR','GBP','USD')&$orderby=Rate desc&$top=3&$count=true&$select=FromCurrency,ToCurrency,Rate
+Authorization: Basic alice:alice
+
+### ToCurrency as a list of the operation's input
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ToCurrency in ('USD','GBP')
+Authorization: Basic alice:alice
+
+### mandatoryFields: FromCurrency is required (400)
+GET {{server}}/Rates?$filter=ToCurrency eq 'USD'
+Authorization: Basic alice:alice
+
+### Through the CAP-served OData endpoint (@requires applies there as well)
+GET http://localhost:4004/odata/v4/rates/Rates?$filter=FromCurrency eq 'USD'
+Authorization: Basic alice:alice

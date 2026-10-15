@@ -1,0 +1,9 @@
+ID,CustomerID,Name,Email,Role
+K001,C001,Anna Berg,anna.berg@acme.example.com,Buyer
+K002,C001,Ben Kurz,ben.kurz@acme.example.com,Accounting
+K003,C002,Clara Voss,clara.voss@bright.example.com,Buyer
+K004,C003,David Roux,david.roux@cobalt.example.com,Owner
+K005,C004,Emma Stone,emma.stone@delta.example.com,Buyer
+K006,C004,Frank Lee,frank.lee@delta.example.com,Accounting
+K007,C006,Gen Sato,gen.sato@fuji.example.com,Buyer
+K008,C007,Hanna Wolf,hanna.wolf@granite.example.com,Owner

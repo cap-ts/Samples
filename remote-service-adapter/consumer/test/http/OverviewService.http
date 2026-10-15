@@ -1,0 +1,55 @@
+# OverviewService: a second @remote layer on top of CatalogService.
+
+@server = http://localhost:5005/odata/v4/overview
+@alice = Basic alice:alice
+@bob = Basic bob:bob
+
+
+### Renamed again (CustomerName -> Name); the exists flags read Contacts once for all rows of the answer
+GET {{server}}/Customers?$select=ID,Name,RegionManager,HasContacts,HasAccounting&$top=4
+Authorization: {{alice}}
+
+### A filter on an exists flag is answered by a semi-join
+GET {{server}}/Customers?$filter=HasAccounting eq true&$select=ID,Name
+Authorization: {{alice}}
+
+### $search through two layers: GroupName is a path column of the layer below, which plans the push-down
+GET {{server}}/Customers?$search=retail&$select=ID,Name,GroupName
+Authorization: {{alice}}
+
+### exists over an association with a constant in its ON condition, with an infix filter, and through two hops
+### (Items -> Products of producer-products)
+GET {{server}}/OrderFlags?$select=ID,HasActiveItems,HasLargeItems,HasBlockedProduct
+Authorization: {{alice}}
+
+### The projection's WHERE: Status = 'O' pushed, _Customer.ValidTo >= $now evaluated in memory
+GET {{server}}/OpenOrders?$select=ID,CustomerName,CustomerValidTo
+Authorization: {{alice}}
+
+### A read by key re-checks the WHERE: O002 is closed, so 404
+GET {{server}}/OpenOrders('O002')
+Authorization: {{alice}}
+
+### $user in the WHERE: bob sees the orders bob created
+GET {{server}}/MyOrders
+Authorization: {{bob}}
+
+### ...and alice hers
+GET {{server}}/MyOrders
+Authorization: {{alice}}
+
+### GROUP BY with HAVING count(ID) > 1
+GET {{server}}/BusyCustomers
+Authorization: {{alice}}
+
+### GROUP BY on two columns. Run it twice: the second answer is X-Cache: HIT
+GET {{server}}/SalesByStatus?$filter=Status eq 'O'
+Authorization: {{alice}}
+
+### Another page and order of the same filter shares the cached entry: X-Cache: HIT
+GET {{server}}/SalesByStatus?$filter=Status eq 'O'&$orderby=Total desc&$top=1
+Authorization: {{alice}}
+
+### DISTINCT
+GET {{server}}/Currencies
+Authorization: {{alice}}

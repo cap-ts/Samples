@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+    <edmx:Include Alias="Common" Namespace="com.sap.vocabularies.Common.v1"/>
+  </edmx:Reference>
+  <edmx:Reference Uri="https://oasis-tcs.github.io/odata-vocabularies/vocabularies/Org.OData.Core.V1.xml">
+    <edmx:Include Alias="Core" Namespace="Org.OData.Core.V1"/>
+  </edmx:Reference>
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+    <edmx:Include Alias="UI" Namespace="com.sap.vocabularies.UI.v1"/>
+  </edmx:Reference>
+  <edmx:DataServices>
+    <Schema Namespace="CustomerService" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <Annotation Term="Core.Links">
+        <Collection>
+          <Record>
+            <PropertyValue Property="rel" String="author"/>
+            <PropertyValue Property="href" String="https://cap.cloud.sap"/>
+          </Record>
+        </Collection>
+      </Annotation>
+      <EntityContainer Name="EntityContainer">
+        <EntitySet Name="Customers" EntityType="CustomerService.Customers">
+          <NavigationPropertyBinding Path="group" Target="CustomerGroups"/>
+          <NavigationPropertyBinding Path="contacts" Target="Contacts"/>
+        </EntitySet>
+        <EntitySet Name="CustomerGroups" EntityType="CustomerService.CustomerGroups"/>
+        <EntitySet Name="Contacts" EntityType="CustomerService.Contacts">
+          <NavigationPropertyBinding Path="customer" Target="Customers"/>
+        </EntitySet>
+        <ActionImport Name="setStatus" Action="CustomerService.setStatus" EntitySet="Customers"/>
+      </EntityContainer>
+      <EntityType Name="Customers">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="createdAt" Type="Edm.DateTimeOffset" Precision="7"/>
+        <Property Name="createdBy" Type="Edm.String" MaxLength="255"/>
+        <Property Name="modifiedAt" Type="Edm.DateTimeOffset" Precision="7"/>
+        <Property Name="modifiedBy" Type="Edm.String" MaxLength="255"/>
+        <Property Name="ID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="80"/>
+        <Property Name="Email" Type="Edm.String" MaxLength="100"/>
+        <Property Name="Phone" Type="Edm.String" MaxLength="20"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="1"/>
+        <Property Name="CompanyCode" Type="Edm.String" MaxLength="4"/>
+        <Property Name="Address" Type="CustomerService.rsa_samples_customers_Address"/>
+        <Property Name="ValidFrom" Type="Edm.Date"/>
+        <Property Name="ValidTo" Type="Edm.Date"/>
+        <Property Name="CreditLimit" Type="Edm.Decimal" Precision="15" Scale="2"/>
+        <Property Name="GroupID" Type="Edm.String" MaxLength="4"/>
+        <NavigationProperty Name="group" Type="CustomerService.CustomerGroups">
+          <ReferentialConstraint Property="GroupID" ReferencedProperty="ID"/>
+        </NavigationProperty>
+        <NavigationProperty Name="contacts" Type="Collection(CustomerService.Contacts)">
+          <OnDelete Action="Cascade"/>
+        </NavigationProperty>
+      </EntityType>
+      <EntityType Name="CustomerGroups">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" MaxLength="4" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="40"/>
+        <Property Name="Region" Type="Edm.String" MaxLength="4"/>
+      </EntityType>
+      <EntityType Name="Contacts">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="CustomerID" Type="Edm.String" MaxLength="10"/>
+        <NavigationProperty Name="customer" Type="CustomerService.Customers">
+          <ReferentialConstraint Property="CustomerID" ReferencedProperty="ID"/>
+        </NavigationProperty>
+        <Property Name="Name" Type="Edm.String" MaxLength="80"/>
+        <Property Name="Email" Type="Edm.String" MaxLength="100"/>
+        <Property Name="Role" Type="Edm.String" MaxLength="20"/>
+      </EntityType>
+      <ComplexType Name="rsa_samples_customers_Address">
+        <Property Name="Street" Type="Edm.String" MaxLength="60"/>
+        <Property Name="City" Type="Edm.String" MaxLength="40"/>
+        <Property Name="PostalCode" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Country" Type="Edm.String" MaxLength="3"/>
+      </ComplexType>
+      <Action Name="block" IsBound="true" EntitySetPath="in">
+        <Parameter Name="in" Type="CustomerService.Customers"/>
+        <ReturnType Type="CustomerService.Customers"/>
+      </Action>
+      <Function Name="creditCheck" IsBound="true" IsComposable="false">
+        <Parameter Name="in" Type="CustomerService.Customers"/>
+        <Parameter Name="Amount" Type="Edm.Decimal" Precision="15" Scale="2"/>
+        <ReturnType Type="Edm.Boolean"/>
+      </Function>
+      <Action Name="setStatus" IsBound="false">
+        <Parameter Name="ID" Type="Edm.String" MaxLength="10"/>
+        <Parameter Name="Status" Type="Edm.String" MaxLength="1"/>
+        <ReturnType Type="CustomerService.Customers"/>
+      </Action>
+      <Annotations Target="CustomerService.Customers/createdAt">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Immutable" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Common.Label" String="Created On"/>
+      </Annotations>
+      <Annotations Target="CustomerService.Customers/createdBy">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Immutable" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Core.Description" String="User's unique ID"/>
+        <Annotation Term="Common.Label" String="Created By"/>
+      </Annotations>
+      <Annotations Target="CustomerService.Customers/modifiedAt">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Common.Label" String="Changed On"/>
+      </Annotations>
+      <Annotations Target="CustomerService.Customers/modifiedBy">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Core.Description" String="User's unique ID"/>
+        <Annotation Term="Common.Label" String="Changed By"/>
+      </Annotations>
+      <Annotations Target="CustomerService.creditCheck(CustomerService.Customers,Edm.Decimal)/Amount">
+        <Annotation Term="Core.OptionalParameter">
+          <Record Type="Core.OptionalParameterType"/>
+        </Annotation>
+      </Annotations>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

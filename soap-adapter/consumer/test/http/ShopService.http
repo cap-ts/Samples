@@ -1,0 +1,26 @@
+# ShopService: an ordinary CAP service (OData V4) that uses the three SOAP services in-process.
+
+@server = http://localhost:4004/odata/v4/shop
+@auth = Basic alice:alice
+
+
+### Products (srv.run on ProductCatalog), stock (one soap.read per product), the EUR->USD rate (soap.read on
+### ExchangeRates) and country names (the CountryCodes mock), combined
+GET {{server}}/Offers?$filter=Category eq 'Furniture'&$orderby=PriceUSD desc&$count=true
+Authorization: {{auth}}
+
+###
+GET {{server}}/Offers?$top=3
+Authorization: {{auth}}
+
+### soap.read on ExchangeRates
+GET {{server}}/convert(Amount=100,From='EUR',To='GBP')
+Authorization: {{auth}}
+
+### No rate: 404 from the handler
+GET {{server}}/convert(Amount=100,From='JPY',To='EUR')
+Authorization: {{auth}}
+
+### The utility API: isSoapService, getEntityKeyFields, FORBIDDEN_SOAP_HEADERS, stripSensitiveHeaders, dedupByKeys
+GET {{server}}/soapInfo()
+Authorization: {{auth}}

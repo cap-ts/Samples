@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+    <edmx:Include Alias="Common" Namespace="com.sap.vocabularies.Common.v1"/>
+  </edmx:Reference>
+  <edmx:Reference Uri="https://oasis-tcs.github.io/odata-vocabularies/vocabularies/Org.OData.Core.V1.xml">
+    <edmx:Include Alias="Core" Namespace="Org.OData.Core.V1"/>
+  </edmx:Reference>
+  <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/UI.xml">
+    <edmx:Include Alias="UI" Namespace="com.sap.vocabularies.UI.v1"/>
+  </edmx:Reference>
+  <edmx:DataServices>
+    <Schema Namespace="SalesService" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <Annotation Term="Core.Links">
+        <Collection>
+          <Record>
+            <PropertyValue Property="rel" String="author"/>
+            <PropertyValue Property="href" String="https://cap.cloud.sap"/>
+          </Record>
+        </Collection>
+      </Annotation>
+      <EntityContainer Name="EntityContainer">
+        <EntitySet Name="Orders" EntityType="SalesService.Orders">
+          <NavigationPropertyBinding Path="items" Target="Items"/>
+        </EntitySet>
+        <EntitySet Name="Items" EntityType="SalesService.Items"/>
+        <EntitySet Name="Projects" EntityType="SalesService.Projects"/>
+        <EntitySet Name="Packages" EntityType="SalesService.Packages"/>
+        <EntitySet Name="Bookings" EntityType="SalesService.Bookings"/>
+        <EntitySet Name="Entries" EntityType="SalesService.Entries"/>
+        <ActionImport Name="upsertStatus" Action="SalesService.upsertStatus" EntitySet="Orders"/>
+      </EntityContainer>
+      <EntityType Name="Orders">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="createdAt" Type="Edm.DateTimeOffset" Precision="7"/>
+        <Property Name="createdBy" Type="Edm.String" MaxLength="255"/>
+        <Property Name="modifiedAt" Type="Edm.DateTimeOffset" Precision="7"/>
+        <Property Name="modifiedBy" Type="Edm.String" MaxLength="255"/>
+        <Property Name="ID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="OrderName" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Kind" Type="Edm.String" MaxLength="3"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="1"/>
+        <Property Name="Customer" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Amount" Type="Edm.Decimal" Precision="15" Scale="2"/>
+        <Property Name="Currency" Type="Edm.String" MaxLength="3"/>
+        <Property Name="OrderDate" Type="Edm.DateTimeOffset"/>
+        <Property Name="Note" Type="Edm.String" MaxLength="40"/>
+        <Property Name="Channel" Type="Edm.String" MaxLength="10"/>
+        <Property Name="CustomerText" Type="Edm.String" MaxLength="60"/>
+        <NavigationProperty Name="items" Type="Collection(SalesService.Items)"/>
+      </EntityType>
+      <EntityType Name="Items">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="OrderID" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Product" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Quantity" Type="Edm.Int32"/>
+        <Property Name="Price" Type="Edm.Decimal" Precision="15" Scale="2"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="10"/>
+      </EntityType>
+      <EntityType Name="Projects">
+        <Key>
+          <PropertyRef Name="ProjectID"/>
+        </Key>
+        <Property Name="ProjectID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Customer" Type="Edm.String" MaxLength="10"/>
+        <Property Name="StartDate" Type="Edm.Date"/>
+        <Property Name="EndDate" Type="Edm.Date"/>
+      </EntityType>
+      <EntityType Name="Packages">
+        <Key>
+          <PropertyRef Name="ProjectID"/>
+          <PropertyRef Name="PackageID"/>
+        </Key>
+        <Property Name="ProjectID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="PackageID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="60"/>
+      </EntityType>
+      <EntityType Name="Bookings">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="Customer" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Project" Type="Edm.String" MaxLength="10"/>
+        <Property Name="Day" Type="Edm.Date"/>
+        <Property Name="Hours" Type="Edm.Decimal" Precision="5" Scale="2"/>
+        <Property Name="CustomerText" Type="Edm.String" MaxLength="20"/>
+      </EntityType>
+      <EntityType Name="Entries">
+        <Key>
+          <PropertyRef Name="CompanyCode"/>
+          <PropertyRef Name="DocNo"/>
+        </Key>
+        <Property Name="CompanyCode" Type="Edm.String" MaxLength="4" Nullable="false"/>
+        <Property Name="DocNo" Type="Edm.String" MaxLength="10" Nullable="false"/>
+        <Property Name="Note" Type="Edm.String" MaxLength="60"/>
+        <Property Name="Released" Type="Edm.Boolean"/>
+        <Property Name="Op" Type="Edm.String" MaxLength="1"/>
+      </EntityType>
+      <Action Name="cancel" IsBound="true" EntitySetPath="in">
+        <Parameter Name="in" Type="SalesService.Orders"/>
+        <ReturnType Type="SalesService.Orders"/>
+      </Action>
+      <Action Name="release" IsBound="true" EntitySetPath="in">
+        <Parameter Name="in" Type="SalesService.Orders"/>
+        <ReturnType Type="SalesService.Orders"/>
+      </Action>
+      <Function Name="printForm" IsBound="true" IsComposable="false">
+        <Parameter Name="in" Type="SalesService.Orders"/>
+        <ReturnType Type="Edm.String"/>
+      </Function>
+      <Action Name="upsertStatus" IsBound="false">
+        <Parameter Name="ID" Type="Edm.String" MaxLength="10"/>
+        <Parameter Name="Status" Type="Edm.String" MaxLength="1"/>
+        <ReturnType Type="SalesService.Orders"/>
+      </Action>
+      <Annotations Target="SalesService.Orders/createdAt">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Immutable" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Common.Label" String="Created On"/>
+      </Annotations>
+      <Annotations Target="SalesService.Orders/createdBy">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Immutable" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Core.Description" String="User's unique ID"/>
+        <Annotation Term="Common.Label" String="Created By"/>
+      </Annotations>
+      <Annotations Target="SalesService.Orders/modifiedAt">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Common.Label" String="Changed On"/>
+      </Annotations>
+      <Annotations Target="SalesService.Orders/modifiedBy">
+        <Annotation Term="UI.HiddenFilter" Bool="true"/>
+        <Annotation Term="UI.ExcludeFromNavigationContext" Bool="true"/>
+        <Annotation Term="Core.Computed" Bool="true"/>
+        <Annotation Term="Core.Description" String="User's unique ID"/>
+        <Annotation Term="Common.Label" String="Changed By"/>
+      </Annotations>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

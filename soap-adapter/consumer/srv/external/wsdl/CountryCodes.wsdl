@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The contract of a country code service. The sample does not call it: its adapter class answers from a mock(). -->
+<definitions name="CountryCodes"
+             targetNamespace="urn:samples:country-codes"
+             xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="urn:samples:country-codes"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <types>
+    <xsd:schema targetNamespace="urn:samples:country-codes" elementFormDefault="qualified">
+      <xsd:element name="ListCountriesRequest"><xsd:complexType><xsd:sequence/></xsd:complexType></xsd:element>
+      <xsd:element name="ListCountriesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Country" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="Code" type="xsd:string"/>
+                  <xsd:element name="Name" type="xsd:string"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+  <message name="ListCountriesInput"><part name="parameters" element="tns:ListCountriesRequest"/></message>
+  <message name="ListCountriesOutput"><part name="parameters" element="tns:ListCountriesResponse"/></message>
+  <portType name="CountryCodesPortType">
+    <operation name="ListCountries"><input message="tns:ListCountriesInput"/><output message="tns:ListCountriesOutput"/></operation>
+  </portType>
+  <binding name="CountryCodesBinding" type="tns:CountryCodesPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="ListCountries">
+      <soap:operation soapAction="urn:samples:country-codes#ListCountries"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+  <service name="CountryCodes">
+    <port name="CountryCodesPort" binding="tns:CountryCodesBinding">
+      <soap:address location="http://localhost:8093/soap/countries"/>
+    </port>
+  </service>
+</definitions>

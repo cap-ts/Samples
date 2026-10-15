@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="ProductCatalog"
+             targetNamespace="urn:samples:product-catalog"
+             xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="urn:samples:product-catalog"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <types>
+    <xsd:schema targetNamespace="urn:samples:product-catalog" elementFormDefault="qualified">
+      <xsd:complexType name="Amount">
+        <xsd:simpleContent>
+          <xsd:extension base="xsd:decimal">
+            <xsd:attribute name="currency" type="xsd:string"/>
+          </xsd:extension>
+        </xsd:simpleContent>
+      </xsd:complexType>
+      <xsd:complexType name="Supplier">
+        <xsd:sequence>
+          <xsd:element name="Name" type="xsd:string"/>
+          <xsd:element name="Country" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Product">
+        <xsd:sequence>
+          <xsd:element name="ProductID" type="xsd:string"/>
+          <xsd:element name="Name" type="xsd:string"/>
+          <xsd:element name="Category" type="xsd:string"/>
+          <xsd:element name="Price" type="tns:Amount"/>
+          <xsd:element name="Currency" type="xsd:string"/>
+          <xsd:element name="Supplier" type="tns:Supplier"/>
+          <xsd:element name="Discontinued" type="xsd:string"/>
+          <xsd:element name="Channel" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ProductList">
+        <xsd:sequence>
+          <xsd:element name="item" type="tns:Product" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:element name="FindProductsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ProductID" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="Category" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="NameContains" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="SortBy" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="Descending" type="xsd:boolean" minOccurs="0"/>
+            <xsd:element name="Skip" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="MaxHits" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="FindProductsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="TotalHits" type="xsd:int"/>
+            <xsd:element name="Products" type="tns:ProductList"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetStockRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ProductID" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetStockResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Stock">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ProductID" type="xsd:string"/>
+                  <xsd:element name="Warehouse" type="xsd:string"/>
+                  <xsd:element name="Quantity" type="xsd:int"/>
+                  <xsd:element name="Reserved" type="xsd:int"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+
+  <message name="FindProductsInput"><part name="parameters" element="tns:FindProductsRequest"/></message>
+  <message name="FindProductsOutput"><part name="parameters" element="tns:FindProductsResponse"/></message>
+  <message name="GetStockInput"><part name="parameters" element="tns:GetStockRequest"/></message>
+  <message name="GetStockOutput"><part name="parameters" element="tns:GetStockResponse"/></message>
+
+  <portType name="ProductCatalogPortType">
+    <operation name="FindProducts">
+      <input message="tns:FindProductsInput"/>
+      <output message="tns:FindProductsOutput"/>
+    </operation>
+    <operation name="GetStock">
+      <input message="tns:GetStockInput"/>
+      <output message="tns:GetStockOutput"/>
+    </operation>
+  </portType>
+
+  <binding name="ProductCatalogBinding" type="tns:ProductCatalogPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="FindProducts">
+      <soap:operation soapAction="urn:samples:product-catalog#FindProducts"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="GetStock">
+      <soap:operation soapAction="urn:samples:product-catalog#GetStock"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+
+  <service name="ProductCatalog">
+    <port name="ProductCatalogPort" binding="tns:ProductCatalogBinding">
+      <soap:address location="http://localhost:8091/soap/catalog"/>
+    </port>
+  </service>
+</definitions>

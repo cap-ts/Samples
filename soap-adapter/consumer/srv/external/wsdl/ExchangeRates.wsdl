@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="ExchangeRates"
+             targetNamespace="urn:samples:exchange-rates"
+             xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="urn:samples:exchange-rates"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <types>
+    <xsd:schema targetNamespace="urn:samples:exchange-rates" elementFormDefault="qualified">
+      <xsd:complexType name="Rate">
+        <xsd:sequence>
+          <xsd:element name="From" type="xsd:string"/>
+          <xsd:element name="To" type="xsd:string"/>
+          <xsd:element name="Rate" type="xsd:decimal"/>
+          <xsd:element name="ValidOn" type="xsd:date"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:element name="GetRatesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="From" type="xsd:string"/>
+            <xsd:element name="To" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetRatesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Rates">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="Rate" type="tns:Rate" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+
+  <message name="GetRatesInput"><part name="parameters" element="tns:GetRatesRequest"/></message>
+  <message name="GetRatesOutput"><part name="parameters" element="tns:GetRatesResponse"/></message>
+
+  <portType name="ExchangeRatesPortType">
+    <operation name="GetRates">
+      <input message="tns:GetRatesInput"/>
+      <output message="tns:GetRatesOutput"/>
+    </operation>
+  </portType>
+
+  <binding name="ExchangeRatesBinding" type="tns:ExchangeRatesPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="GetRates">
+      <soap:operation soapAction="urn:samples:exchange-rates#GetRates"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+
+  <service name="ExchangeRates">
+    <port name="ExchangeRatesPort" binding="tns:ExchangeRatesBinding">
+      <soap:address location="http://localhost:8092/soap/rates"/>
+    </port>
+  </service>
+</definitions>

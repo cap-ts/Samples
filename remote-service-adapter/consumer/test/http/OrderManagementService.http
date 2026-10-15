@@ -1,0 +1,211 @@
+# OrderManagementService: writes through the projection to producer-sales.
+# Run the requests in order: later ones use what earlier ones create. Restart producer-sales to reset its data.
+
+@server = http://localhost:5005/odata/v4/order-management
+@auth = Basic alice:alice
+
+
+### -------------------------------------------------------------- Orders: create, deep write, rules
+
+### CREATE with items (@remote.write.deep): the order is POSTed, then each item is upserted with OrderID filled in.
+### Kind = 'STD' comes from the projection's WHERE, Channel = 'API' from the handler (the client value is dropped:
+### @readonly), CustomerText from @remote.write.value (reads the customer's Name from producer-customers).
+POST {{server}}/Orders
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "ID": "O100",
+  "Title": "Sample order with items",
+  "Customer": "C001",
+  "Amount": 150,
+  "Currency": "EUR",
+  "Channel": "set by the client, dropped",
+  "_Items": [
+    { "ID": "I0100", "Product": "P001", "Quantity": 2, "Price": 29.99 },
+    { "ID": "I0101", "Product": "P007", "Quantity": 10, "Price": 4.5 }
+  ]
+}
+
+### Deep UPDATE: I0100 exists (PATCH), I0102 is new (POST). I0101 is not in the payload and stays.
+PATCH {{server}}/Orders('O100')
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Amount": 175,
+  "_Items": [
+    { "ID": "I0100", "Product": "P001", "Quantity": 3 },
+    { "ID": "I0102", "Product": "P008", "Quantity": 1, "Price": 7.9 }
+  ]
+}
+
+###
+GET {{server}}/Orders('O100')?$select=ID,Amount,CustomerText&$expand=_Items($select=ID,Quantity)
+Authorization: {{auth}}
+
+### Write rules, all checked before anything is written: 400 MULTIPLE_ERRORS with ASSERT_TARGET on Customer
+### (@remote.assert.target) and ORDER_AMOUNT_POSITIVE on Amount (@remote.assert, text from _i18n/messages)
+POST {{server}}/Orders
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "O101", "Title": "Unknown customer", "Customer": "C999", "Amount": 0 }
+
+### @mandatory on a child row of a deep write: 400 with target _Items[0]/Product
+POST {{server}}/Orders
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "O102", "Title": "Item without product", "Customer": "C001", "Amount": 5, "_Items": [ { "ID": "I0103", "Quantity": 1 } ] }
+
+### A value that contradicts the projection's WHERE (Kind = 'STD'): 400
+POST {{server}}/Orders
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "O103", "Title": "A return", "Kind": "RET", "Customer": "C001", "Amount": 5 }
+
+### A row outside the projection's WHERE (O004 is a return): 404
+PATCH {{server}}/Orders('O004')
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "Amount": 1 }
+
+
+### -------------------------------------------------------------- Orders: operations
+
+### Bound action of the same name on SalesService.Orders
+POST {{server}}/Orders('O100')/cancel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Bound function
+GET {{server}}/Orders('O100')/printForm()
+Authorization: {{auth}}
+
+### @remote.operation: 'release' under the local name close
+POST {{server}}/Orders('O100')/close
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Unbound action of another service (@remote.operation: 'SalesService.upsertStatus')
+POST {{server}}/setOrderStatus
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "O100", "Status": "O" }
+
+### A handler's query with path columns, an alias and an expression (srv/order-management-service.js)
+GET {{server}}/orderCard(ID='O100')
+Authorization: {{auth}}
+
+### DELETE: the row is read by key first (404 outside the WHERE), then deleted. Its items stay (no cascade).
+DELETE {{server}}/Orders('O100')
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Projects: deep write into a composite key
+
+### Packages get ProjectID from the parent
+POST {{server}}/Projects
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "ProjectID": "PR10",
+  "Name": "Pilot",
+  "Customer": "C003",
+  "StartDate": "2026-11-01",
+  "EndDate": "2026-11-30",
+  "_Packages": [
+    { "PackageID": "WP1", "Description": "Kick-off" },
+    { "PackageID": "WP2", "Description": "Rollout" }
+  ]
+}
+
+###
+GET {{server}}/Projects('PR10')?$expand=_Packages
+Authorization: {{auth}}
+
+### Wrong shape: a to-many association needs an array: 400, nothing written
+POST {{server}}/Projects
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ProjectID": "PR11", "Name": "Wrong shape", "_Packages": { "PackageID": "WP1", "Description": "x" } }
+
+
+### -------------------------------------------------------------- Bookings: rules over associations
+
+### Valid: CustomerText is computed and cut to String(20) by @remote.write.truncate: "C003 - Cobalt Wholes"
+POST {{server}}/Bookings
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "B100", "Customer": "C003", "Project": "PR10", "Day": "2026-11-05", "Hours": 6 }
+
+### Outside the project's dates: the message gets its arguments from @remote.assert.args
+POST {{server}}/Bookings
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "B101", "Customer": "C003", "Project": "PR10", "Day": "2026-12-24", "Hours": 2 }
+
+### The project belongs to another customer
+POST {{server}}/Bookings
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "B102", "Customer": "C001", "Project": "PR10", "Day": "2026-11-05", "Hours": 2 }
+
+### Every failing rule at once: MULTIPLE_ERRORS
+POST {{server}}/Bookings
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "B103", "Customer": "C999", "Project": "PR10", "Day": "2027-01-05", "Hours": 2 }
+
+
+### -------------------------------------------------------------- Entries: a non-CRUD backend
+
+### CREATE: POST with Op = 'C'
+POST {{server}}/Entries
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "CompanyCode": "1000", "DocNo": "100003", "Note": "Accrual October" }
+
+### UPDATE: sent as POST with Op = 'U' (the backend answers PATCH with 405)
+PATCH {{server}}/Entries(CompanyCode='1000',DocNo='100003')
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "Note": "Accrual October, corrected" }
+
+### A handler action with readSource / writeSource: Released becomes true (a @readonly element)
+POST {{server}}/Entries(CompanyCode='1000',DocNo='100003')/release
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Released already: 409 from the handler
+POST {{server}}/Entries(CompanyCode='1000',DocNo='100003')/release
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### DELETE: sent as POST with Op = 'D'
+DELETE {{server}}/Entries(CompanyCode='1000',DocNo='100003')
+Authorization: {{auth}}
+
+###
+GET {{server}}/Entries
+Authorization: {{auth}}

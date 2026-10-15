@@ -1,0 +1,12 @@
+[
+  { "ProductID": "P001", "Name": "Wireless Mouse", "Category": "Electronics", "Price": 29.99, "Currency": "EUR", "Supplier": { "Name": "Nordic Devices", "Country": "SE" }, "Discontinued": "" },
+  { "ProductID": "P002", "Name": "Mechanical Keyboard", "Category": "Electronics", "Price": 89.00, "Currency": "EUR", "Supplier": { "Name": "Nordic Devices", "Country": "SE" }, "Discontinued": "" },
+  { "ProductID": "P003", "Name": "USB-C Hub", "Category": "Electronics", "Price": 45.50, "Currency": "EUR", "Supplier": { "Name": "Pacific Parts", "Country": "TW" }, "Discontinued": "X" },
+  { "ProductID": "P004", "Name": "Standing Desk", "Category": "Furniture", "Price": 499.00, "Currency": "EUR", "Supplier": { "Name": "Alpine Office", "Country": "AT" }, "Discontinued": "" },
+  { "ProductID": "P005", "Name": "Office Chair", "Category": "Furniture", "Price": 219.00, "Currency": "EUR", "Supplier": { "Name": "Alpine Office", "Country": "AT" }, "Discontinued": "" },
+  { "ProductID": "P006", "Name": "Monitor Arm", "Category": "Furniture", "Price": 79.90, "Currency": "EUR", "Supplier": { "Name": "Alpine Office", "Country": "AT" }, "Discontinued": "" },
+  { "ProductID": "P007", "Name": "Notebook A5", "Category": "Office Supplies", "Price": 4.50, "Currency": "EUR", "Supplier": { "Name": "Paper Works", "Country": "DE" }, "Discontinued": "" },
+  { "ProductID": "P008", "Name": "Gel Pen Set", "Category": "Office Supplies", "Price": 7.90, "Currency": "EUR", "Supplier": { "Name": "Paper Works", "Country": "DE" }, "Discontinued": "" },
+  { "ProductID": "P009", "Name": "Desk Lamp", "Category": "Electronics", "Price": 39.00, "Currency": "EUR", "Supplier": { "Name": "Pacific Parts", "Country": "TW" }, "Discontinued": "" },
+  { "ProductID": "P010", "Name": "Paper Shredder", "Category": "Office Supplies", "Price": 129.00, "Currency": "EUR", "Supplier": { "Name": "Paper Works", "Country": "DE" }, "Discontinued": "X" }
+]

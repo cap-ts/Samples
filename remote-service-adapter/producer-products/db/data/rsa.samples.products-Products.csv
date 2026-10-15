@@ -1,0 +1,11 @@
+ID,Name,Description,category_ID,Price,Currency,Stock,Blocked,ReleasedAt,InternalNote
+P001,Wireless Mouse,Ergonomic wireless mouse,ELEC,29.99,EUR,250,false,2024-03-15T08:00:00Z,reorder at 50
+P002,Mechanical Keyboard,Keyboard with brown switches,ELEC,89.00,EUR,120,false,2024-05-02T09:30:00Z,
+P003,USB-C Hub,Seven port USB-C hub,ELEC,45.50,EUR,0,true,2023-11-20T10:00:00Z,supplier discontinued
+P004,Standing Desk,Electric height adjustable desk,FURN,499.00,EUR,15,false,2024-01-10T07:00:00Z,bulky freight
+P005,Office Chair,Mesh office chair,FURN,219.00,EUR,40,false,2023-09-01T07:00:00Z,
+P006,Monitor Arm,Dual monitor arm,FURN,79.90,EUR,60,false,2024-07-22T12:00:00Z,
+P007,Notebook A5,Dotted notebook,OFFI,4.50,EUR,1000,false,2022-02-01T06:00:00Z,promo item
+P008,Gel Pen Set,Set of ten gel pens,OFFI,7.90,EUR,800,false,2022-02-01T06:00:00Z,
+P009,Desk Lamp,LED desk lamp,ELEC,39.00,EUR,75,false,2024-09-28T23:30:00Z,
+P010,Paper Shredder,Cross-cut shredder,OFFI,129.00,EUR,0,true,2021-06-30T15:00:00Z,recall

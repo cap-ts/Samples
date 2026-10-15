@@ -1,0 +1,11 @@
+ID,OrderName,Kind,Status,Customer,Amount,Currency,OrderDate,Note,Channel,CustomerText,createdBy
+O001,Office refit Berlin,STD,O,C001,1250.00,EUR,2026-09-01T09:00:00Z,deliver to gate 2,WEB,C001 - Acme Trading,alice
+O002,Keyboards for support,STD,X,C001,890.00,EUR,2026-08-15T10:30:00Z,,WEB,C001 - Acme Trading,alice
+O003,Desk replacement,STD,O,C002,998.00,EUR,2026-09-20T14:00:00Z,two desks,SHOP,C002 - Bright Retail,bob
+O004,Returned chairs,RET,O,C002,-438.00,EUR,2026-09-22T08:15:00Z,damaged,SHOP,C002 - Bright Retail,bob
+O005,Warehouse supplies,STD,C,C003,129.00,EUR,2026-07-01T07:45:00Z,cancelled by customer,EDI,C003 - Cobalt Wholesale,alice
+O006,Flagship store setup,STD,O,C004,5480.00,USD,2026-09-30T16:00:00Z,,EDI,C004 - Delta Stores,bob
+O007,Stationery restock,STD,X,C005,316.00,USD,2026-06-12T11:00:00Z,,WEB,C005 - Echo Markets,alice
+O008,Tokyo office lamps,STD,O,C006,390.00,JPY,2026-10-01T02:00:00Z,,WEB,C006 - Fuji Goods,carol
+O009,Hamburg monitors,STD,O,C007,1597.20,EUR,2026-10-05T09:00:00Z,urgent,SHOP,C007 - Granite Supply,alice
+O010,Sydney pens,STD,O,C008,79.00,AUD,2026-10-07T00:30:00Z,,WEB,C008 - Harbor Imports,carol
