@@ -28,6 +28,22 @@ service OverviewService {
             _Contacts
     };
 
+    /**
+     * A value help over the layer below: it searches the same columns (`@cds.search` of CatalogService.Customers) and
+     * adds a flag of its own that is not searched. The search goes down with the page and the count; the flag is
+     * computed for the returned rows only.
+     */
+    @readonly
+    @cds.redirection.target: false
+    entity CustomerFinder as projection on catalog.Customers {
+        key ID,
+            CustomerName,
+            City,
+            Email,
+            GroupName,
+            case when exists _Contacts then true else false end   as HasContacts   : Boolean
+    };
+
     @readonly
     entity Contacts       as projection on catalog.Contacts;
 

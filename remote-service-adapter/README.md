@@ -156,6 +156,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `$search`, `@cds.search`, path columns in the search | `CatalogService.Customers`, `.Products` | `CatalogService.http` |
 | `$search` with `&`: unquoted, CAP ends the term at the `&` (also `%26`); quoted (`%22...%22`), the whole phrase | `CatalogService.Customers` | `CatalogService.http` |
 | `$search` through two layers | `OverviewService.Customers` | `OverviewService.http` |
+| `$search` through a layer with a flag of its own that is not searched: the search, `$top`, `$skip` and `$count` go down together | `OverviewService.CustomerFinder` | `OverviewService.http` |
 | `$expand`, nested, with `$select`, across systems, into the database | `CatalogService` | `CatalogService.http` |
 | `$top` / `$orderby` / `$count` inside an `$expand`, per parent | `CatalogService.Orders` | `CatalogService.http` |
 | Navigation by key (`Orders('O006')/_Items`) | `CatalogService.Orders` | `CatalogService.http` |

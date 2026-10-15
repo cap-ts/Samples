@@ -109,6 +109,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | Entity | Shows |
 | --- | --- |
 | `Customers` | a rename of a rename (`CustomerName as Name`), `exists` flags (`case when exists _Contacts ...`, `exists _Contacts[Role = 'Accounting'] as ...`), `$search` handed to the layer below |
+| `CustomerFinder` | a value help over the layer below: the same searched columns and a flag of its own (`HasContacts`) that is not searched; `$search`, `$top`, `$skip` and `$count` are sent down together, the flag is computed for the page |
 | `OrderFlags` | `exists` over an association with a constant ON condition, with an infix filter, through two hops into producer-products |
 | `OpenOrders` | the projection's own WHERE: a plain term pushed, a to-one path and `$now` evaluated in memory; a read by key outside the WHERE is 404 |
 | `MyOrders` | `where CreatedBy = $user` |

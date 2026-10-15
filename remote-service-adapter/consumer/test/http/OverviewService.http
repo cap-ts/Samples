@@ -17,6 +17,14 @@ Authorization: {{alice}}
 GET {{server}}/Customers?$search=retail&$select=ID,Name,GroupName
 Authorization: {{alice}}
 
+### A layer with a flag of its own that is not searched, the same searched columns as below: $search, $top and $count go down together
+GET {{server}}/CustomerFinder?$search=a&$top=2&$count=true&$select=ID,CustomerName,HasContacts
+Authorization: {{alice}}
+
+### The next page of the same search
+GET {{server}}/CustomerFinder?$search=a&$top=2&$skip=2&$count=true&$select=ID,CustomerName,HasContacts
+Authorization: {{alice}}
+
 ### exists over an association with a constant in its ON condition, with an infix filter, and through two hops
 ### (Items -> Products of producer-products)
 GET {{server}}/OrderFlags?$select=ID,HasActiveItems,HasLargeItems,HasBlockedProduct
