@@ -70,7 +70,7 @@ therefore declares the associations the projections use, each with its ON condit
 | `cds.requires.CustomerService` / `ProductService` / `SalesService` | `kind`, `model`; `[development]`: the producer URL with basic authentication; `[production]`: a BTP destination |
 | `cds.requires.PartnerDirectory` | `kind: "soap"`, the local `wsdl`, `credentials.destination` and `credentials.path`. The destination `RSA_SAMPLES_PARTNERS` is defined in the `watch` scripts through the Cloud SDK's `destinations` environment variable |
 | `cds.requires.auth` | Mocked users: `alice` (admin), `bob` (CompanyCode 1000), `kim` (CompanyCode 2000), `sam` (no CompanyCode); password = user name |
-| `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `search.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...) |
+| `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `search.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...); `warmUp` runs the `@remote.warmUp` reads also in development (`enabled: true`) and makes the server wait for them (`await`: at most 15 seconds) |
 | `cds.query.limit` | Page size when every row of a source is read |
 | `cds.log.levels.remote: "info"` | Logs every backend request: `[remote] - GET http://localhost:7007/odata/v4/sales/Orders?$select=...` |
 
@@ -108,13 +108,13 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 
 | Entity | Shows |
 | --- | --- |
-| `Customers` | a rename of a rename (`CustomerName as Name`), `exists` flags (`case when exists _Contacts ...`, `exists _Contacts[Role = 'Accounting'] as ...`), `$search` handed to the layer below |
+| `Customers` | a rename of a rename (`CustomerName as Name`), `exists` flags (`case when exists _Contacts ...`, `exists _Contacts[Role = 'Accounting'] as ...`), `$search` handed to the layer below; `@remote.warmUp: { where: (HasAccounting = true) }` reads the semi-join's key set at start |
 | `CustomerFinder` | a value help over the layer below: the same searched columns and a flag of its own (`HasContacts`) that is not searched; `$search`, `$top`, `$skip` and `$count` are sent down together, the flag is computed for the page |
 | `OrderFlags` | `exists` over an association with a constant ON condition, with an infix filter, through two hops into producer-products |
 | `OpenOrders` | the projection's own WHERE: a plain term pushed, a to-one path and `$now` evaluated in memory; a read by key outside the WHERE is 404 |
 | `MyOrders` | `where CreatedBy = $user` |
 | `BusyCustomers` | GROUP BY with HAVING |
-| `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`) |
+| `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start |
 | `Currencies` | DISTINCT |
 
 ### ReferenceDataService (`/odata/v4/reference-data`): caching

@@ -9,7 +9,8 @@
 GET {{server}}/Customers?$select=ID,Name,RegionManager,HasContacts,HasAccounting&$top=4
 Authorization: {{alice}}
 
-### A filter on an exists flag is answered by a semi-join
+### A filter on an exists flag is answered by a semi-join. The key set was read at start (@remote.warmUp): the log of
+### the consumer shows no request to Contacts for it
 GET {{server}}/Customers?$filter=HasAccounting eq true&$select=ID,Name
 Authorization: {{alice}}
 
@@ -50,7 +51,7 @@ Authorization: {{alice}}
 GET {{server}}/BusyCustomers
 Authorization: {{alice}}
 
-### GROUP BY on two columns. Run it twice: the second answer is X-Cache: HIT
+### GROUP BY on two columns. X-Cache: HIT already the first time: @remote.warmUp read it when the server started
 GET {{server}}/SalesByStatus?$filter=Status eq 'O'
 Authorization: {{alice}}
 

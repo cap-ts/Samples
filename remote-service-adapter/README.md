@@ -195,6 +195,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `X-Cache: MISS`, `HIT`, `PARTIAL` | `ReferenceDataService.CustomerNames` | `ReferenceDataService.http` |
 | Aggregates (`cds.query.remote.cache.aggregates`) | `OverviewService.SalesByStatus` | `OverviewService.http` |
 | Semi-join key sets, stale-while-revalidate, time to live | `cds.query.remote.cache.*` in `package.json` | |
+| Warm-up at start and before the time to live ends: `@remote.warmUp` with a `where` per record, `cds.query.remote.warmUp` (`enabled`, `await`) | `OverviewService.SalesByStatus`, `OverviewService.Customers` | `OverviewService.http` |
 
 ### Security
 

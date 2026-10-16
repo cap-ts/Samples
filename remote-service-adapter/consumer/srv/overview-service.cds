@@ -10,8 +10,13 @@ using { CatalogService as catalog } from './catalog-service';
 @remote
 service OverviewService {
 
-    /** Renamed again (CustomerName -> Name) plus flags computed from to-many associations. */
+    /**
+     * Renamed again (CustomerName -> Name) plus flags computed from to-many associations. `@remote.warmUp` reads
+     * `HasAccounting = true` when the server starts and before the cached key set of the semi-join expires
+     * (cds.query.remote.cache.semiJoins), so the first user filtering on the flag is answered from the cache too.
+     */
     @readonly
+    @remote.warmUp: { where: (HasAccounting = true) }
     entity Customers      as projection on catalog.Customers {
         key ID,
             CustomerName                                          as Name,
@@ -93,8 +98,16 @@ service OverviewService {
             sum(Amount) as Total  : Decimal(15, 2)
     } group by CustomerID having count(ID) > 1;
 
-    /** GROUP BY on two columns: the aggregate cache (cds.query.remote.cache.aggregates) answers repeated reads. */
+    /**
+     * GROUP BY on two columns: the aggregate cache (cds.query.remote.cache.aggregates) answers repeated reads.
+     * `@remote.warmUp` fills it at start for the unfiltered read and for `Status = 'O'`, one entry each, and renews them
+     * before their time to live (cds.query.remote.cache.ttl) ends.
+     */
     @readonly
+    @remote.warmUp: [
+        { limit: 1 },
+        { where: (Status = 'O') }
+    ]
     entity SalesByStatus  as projection on catalog.Orders {
         key Status,
         key Currency,

@@ -135,6 +135,10 @@
           "perUser": false,
           "maxEntries": 500,
           "maxRows": 100000
+        },
+        "warmUp": {
+          "enabled": true,
+          "await": 15
         }
       }
     },
