@@ -101,7 +101,19 @@ authentication with the mocked user `alice`), and its `watch` script defines the
 OData services use the BTP destinations `RSA_SAMPLES_CUSTOMERS`, `RSA_SAMPLES_PRODUCTS` and `RSA_SAMPLES_SALES`.
 
 The scripts set the port with `PORT=<port> ...`, which works in macOS / Linux shells. On Windows run
-`cds watch --port <port>` (and for the consumer set the `destinations` variable as in its `watch` script).
+`cds watch --port <port>` (`cds-serve --port 8008` for producer-products), and for the consumer set the `destinations`
+variable as in its `watch` script.
+
+producer-products runs `cds-serve`, not `cds watch`, also in its `watch` script. `cds watch` registers every service it
+serves in the local binding registry (`~/.cds/services/<port>.json`, `~/.cds-services.json` before `@sap/cds` 10.2),
+and the consumer, also under `cds watch`, takes the URL of a required service from there. The registry knows only the
+OData V4 endpoint of ProductService, so the consumer would read `/odata/v4/product` with `kind: odata` instead of the
+V2 endpoint of its configuration, and none of the OData V2 scenarios would run. If ProductService was started with
+`cds watch` before, delete `~/.cds/services/8008.json`. The consumer's log shows which endpoint it uses:
+
+```text
+[cds] - connect to ProductService > odata-v2 { url: 'http://localhost:8008/odata/v2/product', ... }
+```
 
 The boot log of the consumer names `RemoteApplicationService` as the implementation of the `@remote` services and the
 class of `order-management-service.js` for OrderManagementService:

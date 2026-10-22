@@ -18,6 +18,6 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "watch": "PORT=8008 cds watch"
+    "watch": "PORT=8008 cds-serve"
   }
 }

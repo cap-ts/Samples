@@ -93,6 +93,9 @@ Content-Type: application/json
 
 ### -------------------------------------------------------------- OData V2 (producer-products)
 
+### The consumer's log must show "connect to ProductService > odata-v2" with /odata/v2/product. "> odata" with
+### /odata/v4/product means producer-products runs under cds watch: the V2 requests below then go to V4 (see README).
+
 ### InternalNote is sap:filterable="false" in the V2 $metadata. @remote.filter.local evaluates the filter in memory
 ### instead of letting the backend ignore it. The count arrives as text from V2 and is converted.
 GET {{server}}/Products?$filter=contains(InternalNote,'re')&$select=ID,Name,InternalNote&$count=true

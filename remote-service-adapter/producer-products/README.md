@@ -17,3 +17,7 @@ What the V2 endpoint shows the consumer: `sap:filterable="false"` in `$metadata`
 npm install
 npm run watch        # http://localhost:8008/odata/v2/product/$metadata
 ```
+
+`npm run watch` runs `cds-serve` (no reload): under `cds watch` the service would register its OData V4 endpoint in
+the local binding registry (`~/.cds/services/8008.json`), and the consumer would read that endpoint instead of the V2
+one. See "Running the sample locally" in the [sample README](../README.md#️-running-the-sample-locally).
