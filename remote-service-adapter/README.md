@@ -147,7 +147,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | Structured field (`Address.City as City`) | `CatalogService.Customers` | `CatalogService.http` |
 | Path column, one hop / two hops / into another system / into the database | `CatalogService.Customers`, `.Orders`, `.Items` | `CatalogService.http` |
 | JOIN views: inner and left joins, three sources over two systems, a SOAP source, a database source, an expression column, the view's WHERE, ON constants, a mixin association; reads by key, pushed filters, `$search`, `$orderby`, `$count`; rows per source capped by `cds.query.remote.join.maxRows` | `CatalogService.OrderLines`, `.PartnerCustomers`, `.GroupRegions` | `CatalogService.http` |
-| `@cds.persistence.skip` on a JOIN view that joins a remote entity with one that has a table | `CatalogService.PartnerCustomers`, `.GroupRegions` | |
+| `@cds.persistence.skip` and `@cds.persistence.mock: false` on the JOIN views (no database view; `cds watch` keeps the skip) | `CatalogService.OrderLines`, `.PartnerCustomers`, `.GroupRegions` | |
 | Calculated column (`left`, `concat`, `coalesce`) | `CatalogService.Customers` | `CatalogService.http` |
 | `left(...)` filter pushed as `startswith` | `CatalogService.Customers.Initial` | `CatalogService.http` |
 | Boolean flag pushed as `Field = 'v'`; `@remote.pushdown: false` | `CatalogService.Customers.IsBlocked`, `.IsActive` | `CatalogService.http` |

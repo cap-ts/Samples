@@ -95,9 +95,9 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `Orders` | producer-sales | paths into another system (`_Customer.Name`, `_Customer._Group.Region`), associations across systems, an association with a constant in its ON condition (`_ActiveItems`) |
 | `Items` | producer-sales | path into producer-products (`_Product.Name`) |
 | `OrderStatus` | none | static data (`@response.data`) |
-| `OrderLines` | producer-sales + producer-products | JOIN view: orders `join` items `left join` products (OData V4 + V2), an expression column (`i.Quantity * i.Price`), the view's WHERE, an ON constant, a mixin association `_Order`; a read by key starts at the items |
-| `PartnerCustomers` | producer-partners + producer-customers | JOIN view of a SOAP and an OData source (`@cds.persistence.skip`: the SOAP entity has a table) |
-| `GroupRegions` | producer-customers + the database | JOIN view of a remote source and the consumer's own table (`@cds.persistence.skip`) |
+| `OrderLines` | producer-sales + producer-products | JOIN view: orders `join` items `left join` products (OData V4 + V2), an expression column (`i.Quantity * i.Price`), the view's WHERE, an ON constant, a mixin association `_Order`; a read by key starts at the items (`@cds.persistence.skip`, `@cds.persistence.mock: false`) |
+| `PartnerCustomers` | producer-partners + producer-customers | JOIN view of a SOAP and an OData source (`@cds.persistence.skip`, `@cds.persistence.mock: false`: the SOAP entity has a table) |
+| `GroupRegions` | producer-customers + the database | JOIN view of a remote source and the consumer's own table (`@cds.persistence.skip`, `@cds.persistence.mock: false`) |
 | `ItemStatistics` | producer-sales | GROUP BY with `count`, `sum`, `max`; page size from `@cds.query.limit` |
 | `Partners` | producer-partners (SOAP) | a SOAP source; an association from SOAP into OData (`$expand` with `$select`, filters through it); `$search` matched here |
 

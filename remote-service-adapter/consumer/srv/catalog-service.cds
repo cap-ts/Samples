@@ -178,6 +178,8 @@ service CatalogService {
      * own WHERE, the constant of the ON condition and the expression column apply; `_Order` (a mixin) can be expanded.
      */
     @readonly
+    @cds.persistence.skip          // no database view: its sources are remote
+    @cds.persistence.mock : false  // keeps the skip when cds watch mocks the remote services
     entity OrderLines     as
         select from sales.Orders as o
         join sales.Items as i on i.OrderID = o.ID and i.Status = 'Active'
@@ -201,7 +203,8 @@ service CatalogService {
 
     /** A JOIN view of a SOAP source and an OData source: partners (producer-partners) with their customers (producer-customers). */
     @readonly
-    @cds.persistence.skip   // no database view: it joins a remote entity with one that has a table
+    @cds.persistence.skip          // no database view: it joins a remote entity with one that has a table
+    @cds.persistence.mock : false  // keeps the skip when cds watch mocks the remote services
     entity PartnerCustomers as
         select from partners.Partners as pa
         join customers.Customers as c on c.ID = pa.Customer {
@@ -215,7 +218,8 @@ service CatalogService {
 
     /** A JOIN view of a remote source and the consumer's database: customer groups with the manager of their region. */
     @readonly
-    @cds.persistence.skip   // no database view: it joins a remote entity with one that has a table
+    @cds.persistence.skip          // no database view: it joins a remote entity with one that has a table
+    @cds.persistence.mock : false  // keeps the skip when cds watch mocks the remote services
     entity GroupRegions   as
         select from customers.CustomerGroups as g
         join db.Regions as r on r.code = g.Region {
