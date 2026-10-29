@@ -168,6 +168,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `$search`, `@cds.search`, path columns in the search | `CatalogService.Customers`, `.Products` | `CatalogService.http` |
 | `$search` with `&`: unquoted, CAP ends the term at the `&` (also `%26`); quoted (`%22...%22`), the whole phrase | `CatalogService.Customers` | `CatalogService.http` |
 | `$search` through two layers | `OverviewService.Customers` | `OverviewService.http` |
+| Case-insensitive `$search` on a case-sensitive backend (OData V2, no `tolower`): search copy `@remote.warmUp: { search: 'read' \| 'push' }`, with a `where` | `OverviewService.ProductFinder`, `.AvailableProducts` | `OverviewService.http` |
 | `$search` through a layer with a flag of its own that is not searched: the search, `$top`, `$skip` and `$count` go down together | `OverviewService.CustomerFinder` | `OverviewService.http` |
 | `$expand`, nested, with `$select`, across systems, into the database | `CatalogService` | `CatalogService.http` |
 | `$top` / `$orderby` / `$count` inside an `$expand`, per parent | `CatalogService.Orders` | `CatalogService.http` |
@@ -208,6 +209,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | Aggregates (`cds.query.remote.cache.aggregates`) | `OverviewService.SalesByStatus` | `OverviewService.http` |
 | Semi-join key sets, stale-while-revalidate, time to live | `cds.query.remote.cache.*` in `package.json` | |
 | Warm-up at start and before the time to live ends: `@remote.warmUp` with a `where` per record, `cds.query.remote.warmUp` (`enabled`, `await`) | `OverviewService.SalesByStatus`, `OverviewService.Customers` | `OverviewService.http` |
+| Search copy filled by the warm-up (`search`, `every`) | `OverviewService.ProductFinder`, `.AvailableProducts` | `OverviewService.http` |
 
 ### Security
 

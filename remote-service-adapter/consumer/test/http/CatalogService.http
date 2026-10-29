@@ -109,6 +109,10 @@ Authorization: {{auth}}
 GET {{server}}/Products?$search=Desk&$select=ID,Name,CategoryName
 Authorization: {{auth}}
 
+### OData V2 searches case-sensitively: DESK finds nothing here (OverviewService.ProductFinder keeps a search copy and finds it)
+GET {{server}}/Products?$search=DESK&$count=true&$select=ID,Name
+Authorization: {{auth}}
+
 ### A count only: one GET Products/$count, no rows move
 GET {{server}}/Products?$top=0&$count=true
 Authorization: {{auth}}

@@ -110,6 +110,8 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | --- | --- |
 | `Customers` | a rename of a rename (`CustomerName as Name`), `exists` flags (`case when exists _Contacts ...`, `exists _Contacts[Role = 'Accounting'] as ...`), `$search` handed to the layer below; `@remote.warmUp: { where: (HasAccounting = true) }` reads the semi-join's key set at start |
 | `CustomerFinder` | a value help over the layer below: the same searched columns and a flag of its own (`HasContacts`) that is not searched; `$search`, `$top`, `$skip` and `$count` are sent down together, the flag is computed for the page |
+| `ProductFinder` | a value help over an OData V2 source (case-sensitive `$search`) with a search copy: `@remote.warmUp: { every: 600, search: 'read' }` keeps the rows, `$search` is matched on them ignoring case with `$filter`, `$orderby`, the page and `$count` |
+| `AvailableProducts` | a search copy with a `where` and `search: 'push'`: only a `$search` whose `$filter` contains `Blocked eq false` is answered from it; others, and every search before the warm-up filled it, go to the backend |
 | `OrderFlags` | `exists` over an association with a constant ON condition, with an infix filter, through two hops into producer-products |
 | `OpenOrders` | the projection's own WHERE: a plain term pushed, a to-one path and `$now` evaluated in memory; a read by key outside the WHERE is 404 |
 | `MyOrders` | `where CreatedBy = $user` |

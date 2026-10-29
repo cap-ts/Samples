@@ -52,6 +52,41 @@ service OverviewService {
     @readonly
     entity Contacts       as projection on catalog.Contacts;
 
+    /**
+     * A product value help over an OData V2 source, whose `$search` is case-sensitive. `search: 'read'` keeps a copy
+     * of the rows (filled by the warm-up at start and every 600 seconds; without it the first search reads it): `$search`
+     * is matched on the copy ignoring case, with `$filter`, `$orderby`, the page and `$count` applied to it.
+     */
+    @readonly
+    @cds.search: { Name, Description, CategoryName }
+    @remote.warmUp: { every: 600, search: 'read' }
+    entity ProductFinder  as projection on catalog.Products {
+        key ID,
+            Name,
+            Description,
+            CategoryName,
+            Price,
+            Currency,
+            Blocked
+    };
+
+    /**
+     * `search: 'push'` with a `where`: the copy holds the products that are not blocked. A `$search` whose `$filter`
+     * contains `Blocked eq false` is answered from it ignoring case; any other goes to the backend (case-sensitive),
+     * as does every search before the warm-up filled the copy.
+     */
+    @readonly
+    @cds.search: { Name, Description }
+    @remote.warmUp: { where: (Blocked = false), search: 'push' }
+    entity AvailableProducts as projection on catalog.Products {
+        key ID,
+            Name,
+            Description,
+            Price,
+            Currency,
+            Blocked
+    };
+
     /** Flags over to-many associations, an infix filter, and a path through two associations. */
     @readonly
     entity OrderFlags     as projection on catalog.Orders {

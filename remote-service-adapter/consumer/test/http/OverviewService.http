@@ -26,6 +26,29 @@ Authorization: {{alice}}
 GET {{server}}/CustomerFinder?$search=a&$top=2&$skip=2&$count=true&$select=ID,CustomerName,HasContacts
 Authorization: {{alice}}
 
+### $search on an OData V2 source is case-sensitive (CatalogService/Products?$search=DESK finds nothing). ProductFinder
+### keeps a search copy (@remote.warmUp search: 'read'): DESK finds "Standing Desk", ignoring case
+GET {{server}}/ProductFinder?$search=DESK&$count=true&$select=ID,Name,CategoryName
+Authorization: {{alice}}
+
+### $filter, $orderby, the page and $count are applied to the copy (no request to producer-products)
+GET {{server}}/ProductFinder?$search=E&$filter=Price lt 100&$orderby=Price desc&$top=2&$count=true&$select=ID,Name,Price
+Authorization: {{alice}}
+
+### A count only on the copy
+GET {{server}}/ProductFinder?$search=MOUSE&$top=0&$count=true
+Authorization: {{alice}}
+
+### search: 'push' with where (Blocked = false): a $filter with Blocked eq false is answered from the copy, ignoring case.
+### An unbound operation through the adapter (CatalogService setCustomerStatus) drops every cache: until the next
+### warm-up run (about two minutes) this request goes to the backend, case-sensitive
+GET {{server}}/AvailableProducts?$search=NOTEBOOK&$filter=Blocked eq false&$count=true&$select=ID,Name
+Authorization: {{alice}}
+
+### Without that filter the copy does not hold every row: the backend searches, case-sensitively (no product has "NOTEBOOK")
+GET {{server}}/AvailableProducts?$search=NOTEBOOK&$count=true&$select=ID,Name
+Authorization: {{alice}}
+
 ### exists over an association with a constant in its ON condition, with an infix filter, and through two hops
 ### (Items -> Products of producer-products)
 GET {{server}}/OrderFlags?$select=ID,HasActiveItems,HasLargeItems,HasBlockedProduct
