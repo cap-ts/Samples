@@ -85,3 +85,28 @@ Authorization: {{alice}}
 ### DISTINCT
 GET {{server}}/Currencies
 Authorization: {{alice}}
+
+
+### -------------------------------------------------------------- Entries: writes through a second layer
+### CDS copied @remote.write.asInsert / @remote.write.operation from OrderManagementService.Entries; the layer below
+### converts each write once. CREATE: one POST with Op = 'C'
+POST {{server}}/Entries
+Authorization: {{alice}}
+Content-Type: application/json
+
+{ "CompanyCode": "1000", "DocNo": "100004", "Note": "Accrual November" }
+
+### UPDATE: sent down as UPDATE, posted to the backend with Op = 'U'
+PATCH {{server}}/Entries(CompanyCode='1000',DocNo='100004')
+Authorization: {{alice}}
+Content-Type: application/json
+
+{ "Note": "Accrual November, corrected" }
+
+### DELETE: sent down as DELETE, posted to the backend with Op = 'D'
+DELETE {{server}}/Entries(CompanyCode='1000',DocNo='100004')
+Authorization: {{alice}}
+
+### 404: deleted
+GET {{server}}/Entries(CompanyCode='1000',DocNo='100004')
+Authorization: {{alice}}

@@ -3,9 +3,10 @@
  *
  * Each layer pushes down what it can to the layer below; renamed elements are translated layer by layer. This layer
  * shows what only makes sense on top of local entities: the projection's own WHERE with `$user` / `$now` and to-one
- * paths, `exists` flags, HAVING and DISTINCT.
+ * paths, `exists` flags, HAVING and DISTINCT, and writes through a second layer over a non-CRUD backend.
  */
 using { CatalogService as catalog } from './catalog-service';
+using { OrderManagementService as orders } from './order-management-service';
 
 @remote
 service OverviewService {
@@ -124,6 +125,13 @@ service OverviewService {
             Status,
             CreatedBy
     } where CreatedBy = $user;
+
+    /**
+     * Writes through a second layer over a non-CRUD backend. CDS copies `@remote.write.asInsert` and
+     * `@remote.write.operation` of OrderManagementService.Entries to this projection; this layer sends the plain
+     * CREATE / UPDATE / DELETE down and the layer below turns it into one POST with Op = 'C' / 'U' / 'D'.
+     */
+    entity Entries        as projection on orders.Entries;
 
     /** GROUP BY with HAVING: customers with more than one order. */
     @readonly

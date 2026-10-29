@@ -232,6 +232,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `@remote.write.value`, `@remote.write.truncate` | `OrderManagementService.Orders`, `.Bookings` | `OrderManagementService.http` |
 | Deep writes (`@remote.write.deep`): create, upsert, composite keys, `@mandatory` on child rows, shape check | `OrderManagementService.Orders`, `.Projects` | `OrderManagementService.http` |
 | Non-CRUD backend (`@remote.write.asInsert`, `@remote.write.operation`) | `OrderManagementService.Entries` | `OrderManagementService.http` |
+| Writes through a second layer over a non-CRUD backend (settings copied by CDS, applied once below) | `OverviewService.Entries` | `OverviewService.http` |
 | `readSource` / `writeSource` | `order-management-service.js` (`Entries.release`) | `OrderManagementService.http` |
 | A handler's query with path columns, aliases, expressions | `order-management-service.js` (`orderCard`) | `OrderManagementService.http` |
 | Bound action / function forwarded by name; `@remote.operation` with another name | `CatalogService.Customers`, `OrderManagementService.Orders` | both |

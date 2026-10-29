@@ -118,6 +118,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `BusyCustomers` | GROUP BY with HAVING |
 | `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start |
 | `Currencies` | DISTINCT |
+| `Entries` | writes through a second layer over a non-CRUD backend: the `@remote.write.*` settings CDS copied from `OrderManagementService.Entries` are applied once, by the layer below (one POST with `Op` per write) |
 
 ### ReferenceDataService (`/odata/v4/reference-data`): caching
 

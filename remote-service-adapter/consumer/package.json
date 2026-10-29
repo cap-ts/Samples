@@ -5,7 +5,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@cap-ts/remote-service-adapter": "^0.2.10",
+    "@cap-ts/remote-service-adapter": "^0.2.11",
     "@cap-ts/soap-adapter": "^0.4.2",
     "@sap-cloud-sdk/connectivity": "^4.7.0",
     "@sap-cloud-sdk/http-client": "^4.7.0",
