@@ -9,7 +9,8 @@ field mapping in code. The overview of the whole sample, how to run it and the s
 
 ```diagram
 consumer/
-├── package.json                      ← cds.requires (backends, mocked users), cds.query.remote, log levels
+├── package.json                      ← cds.requires (backends, mocked users), cds.query.remote, cds.mcp, log levels
+├── AI-AGENTS.md                      ← the same services for AI agents over MCP (@cap-js/mcp)
 ├── _i18n/messages.properties         ← texts of the write rules (@remote.assert)
 ├── db/
 │   ├── schema.cds                    ← Regions: the consumer's own table
@@ -28,7 +29,8 @@ consumer/
 │   ├── reference-data-service.cds    ← @remote + @remote.cache
 │   ├── restricted-service.cds        ← @remote + @requires / @restrict
 │   ├── order-management-service.cds  ← writes, rules, deep writes, operations
-│   └── order-management-service.js   ← class extends RemoteApplicationService
+│   ├── order-management-service.js   ← class extends RemoteApplicationService
+│   └── mcp.cds                       ← @odata @mcp and @mcp.instructions on CatalogService, RestrictedService
 └── test/http/*.http                  ← one request file per service (VS Code REST Client)
 ```
 
@@ -71,6 +73,8 @@ therefore declares the associations the projections use, each with its ON condit
 | `cds.requires.PartnerDirectory` | `kind: "soap"`, the local `wsdl`, `credentials.destination` and `credentials.path`. The destination `RSA_SAMPLES_PARTNERS` is defined in the `watch` scripts through the Cloud SDK's `destinations` environment variable |
 | `cds.requires.auth` | Mocked users: `alice` (admin), `bob` (CompanyCode 1000), `kim` (CompanyCode 2000), `sam` (no CompanyCode); password = user name |
 | `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `search.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...); `warmUp` runs the `@remote.warmUp` reads also in development (`enabled: true`) and makes the server wait for them (`await`: at most 15 seconds) |
+| `cds.query.remote.budget` / `audit` / `agentHints` / `[production].maskBackendErrors` | The settings for agents and other clients: one budget per request, an audit line per request, hints in the docs of the services and entities, generic backend error texts in production ([AI-AGENTS.md](AI-AGENTS.md) "Guardrails for agents") |
+| `cds.mcp` | `@cap-js/mcp`: `prefix` (tool names `CatalogService-query`, ...), `autowire` (the mocked user with which `cds watch` registers the endpoints with local agents) |
 | `cds.query.limit` | Page size when every row of a source is read |
 | `cds.log.levels.remote: "info"` | Logs every backend request: `[remote] - GET http://localhost:7007/odata/v4/sales/Orders?$select=...` |
 

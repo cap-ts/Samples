@@ -1,0 +1,91 @@
+# MCP: CatalogService and RestrictedService served to AI agents (srv/mcp.cds, plugin @cap-js/mcp). See AI-AGENTS.md.
+# Every request is one stateless JSON-RPC call; no initialize is needed. The answer is a server-sent event whose
+# data holds the tool result (text for the model, structuredContent for programs).
+# Users (package.json, cds.requires.auth): alice is admin, bob has CompanyCode 1000, kim 2000, sam none.
+
+@catalog = http://localhost:5005/mcp/catalog
+@restricted = http://localhost:5005/mcp/restricted
+
+
+### The tools of CatalogService: CatalogService-describe, -query (read only), -call (destructive)
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }
+
+### describe: entities, elements, keys and associations, as an agent sees them before the first query
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": { "name": "CatalogService-describe", "arguments": { "entities": ["Orders", "Items"] } } }
+
+### One query over three systems: the filter, order and limit go to producer-sales, the customer names and regions
+### are read by key from producer-customers, the items from producer-sales and their products from producer-products
+### (see the [remote] lines of the consumer log)
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from Orders { ID, Title, Status, CustomerName, CustomerRegion, _Items { ProductName, Quantity } } where Status = 'O' and Amount > 100 order by Amount desc limit 3" } } }
+
+### A join view of the SOAP partner directory and the customer system
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from PartnerCustomers { PartnerName, Country, CustomerName, CustomerStatus } where Country = 'DE'" } } }
+
+### Totals: group by and aggregates are computed by the service (one read of the sales system with the filter pushed)
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from Orders { CustomerRegion, count(*) as Orders, sum(Amount) as Total } where Status != 'C' group by CustomerRegion order by Total desc" } } }
+
+### The same @restrict as over OData: bob gets the customers of CompanyCode 1000, pushed to the backend as a filter
+POST {{restricted}}
+Authorization: Basic bob:bob
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": { "name": "RestrictedService-query", "arguments": { "cql": "SELECT from Customers { ID, Name, CompanyCode } order by ID" } } }
+
+### kim: CompanyCode 2000
+POST {{restricted}}
+Authorization: Basic kim:kim
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": { "name": "RestrictedService-query", "arguments": { "cql": "SELECT from Customers { ID, Name, CompanyCode } order by ID" } } }
+
+### sam has no CompanyCode: an empty answer without a backend call
+POST {{restricted}}
+Authorization: Basic sam:sam
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": { "name": "RestrictedService-query", "arguments": { "cql": "SELECT from Customers { ID, Name, CompanyCode }" } } }
+
+### call: the unbound action setCustomerStatus, forwarded to CustomerService.setStatus (a change in producer-customers;
+### agents ask the user first, the tool is marked destructive). The next request sets the status back.
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": { "name": "CatalogService-call", "arguments": { "action": "setCustomerStatus", "parameters": { "ID": "C006", "Status": "B" } } } }
+
+###
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": { "name": "CatalogService-call", "arguments": { "action": "setCustomerStatus", "parameters": { "ID": "C006", "Status": "A" } } } }

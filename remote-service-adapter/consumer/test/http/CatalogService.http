@@ -6,6 +6,22 @@
 @auth = Basic alice:alice
 
 
+### -------------------------------------------------------------- Agents and other clients
+
+### cds.query.remote.agentHints: the $metadata carries the adapter's hints as Core.Description ("Adapter hints: A filter
+### on the whole key (ID) is one read by key. ...", "Filtered in memory ..." on Products.Name, "Comes from another
+### system ..." on the associations across systems). An MCP server's describe shows the same docs.
+GET {{server}}/$metadata
+Authorization: {{auth}}
+
+### cds.query.remote.audit / budget: the consumer logs one [remote-audit] line per request (user, protocol odata,
+### status, backendRequests, backendRows, elapsedMs; no filter values). This read sends three backend requests
+### (orders, then customers and products by key); a request above cds.query.remote.budget would be a 502
+### REMOTE_BUDGET_EXCEEDED naming the limit.
+GET {{server}}/Orders?$select=ID,CustomerName&$expand=_Items($select=ProductName)&$top=3
+Authorization: {{auth}}
+
+
 ### -------------------------------------------------------------- Mapping (aliases, structures, paths, calculated)
 
 ### Aliases, structured fields (City), path columns into another entity (GroupName) and into the database
@@ -166,6 +182,31 @@ Authorization: {{auth}}
 
 ### $top, $orderby and $count inside an expand apply per parent: each order gets its own largest item
 GET {{server}}/Orders?$top=3&$select=ID&$expand=_Items($select=ID,Quantity;$orderby=Quantity desc;$top=1;$count=true)
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- GROUP BY and aggregates of the request ($apply)
+### Orders declares no group by: the adapter reads the rows once (WHERE pushed, at most cds.query.remote.aggregate.maxRows)
+### and groups them here. A handler's SELECT ... group by, or an AI agent's query through an MCP server, is served the same way.
+
+### Sum per status
+GET {{server}}/Orders?$apply=groupby((Status),aggregate(Amount with sum as Total))
+Authorization: {{auth}}
+
+### Filter first (pushed to producer-sales), then the three largest customers by amount, with the number of orders
+GET {{server}}/Orders?$apply=filter(Currency eq 'EUR')/groupby((CustomerID),aggregate(Amount with sum as Total,$count as Orders))&$orderby=Total desc&$top=3
+Authorization: {{auth}}
+
+### Grouped by a path column two hops into another system (Customers -> CustomerGroups of producer-customers)
+GET {{server}}/Orders?$apply=groupby((CustomerRegion),aggregate(Amount with average as Mean,Amount with max as Largest))
+Authorization: {{auth}}
+
+### One total without groupby, and the count only: one GET Orders/$count, no rows move
+GET {{server}}/Orders?$apply=aggregate(Amount with sum as Total,ID with countdistinct as Distinct)
+Authorization: {{auth}}
+
+###
+GET {{server}}/Orders/$count?$filter=Status eq 'O'
 Authorization: {{auth}}
 
 

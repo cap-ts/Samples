@@ -179,6 +179,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | Static data (`@response.data`) | `CatalogService.OrderStatus` | `CatalogService.http` |
 | GROUP BY with aggregates, `@cds.query.limit` | `CatalogService.ItemStatistics`, `OverviewService.SalesByStatus` | both |
 | HAVING | `OverviewService.BusyCustomers` | `OverviewService.http` |
+| GROUP BY / aggregates of the request (`$apply`: `groupby`, `aggregate`, `filter`, also by a path column); `cds.query.remote.aggregate.maxRows` | `CatalogService.Orders` | `CatalogService.http` |
 | DISTINCT | `OverviewService.Currencies` | `OverviewService.http` |
 | Layered services, renames per layer | `OverviewService` on `CatalogService` | `OverviewService.http` |
 | `exists` flags (constant ON condition, infix filter, two hops), filter on a flag | `OverviewService.Customers`, `.OrderFlags` | `OverviewService.http` |
@@ -199,6 +200,16 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | SOAP through `@cap-ts/soap-adapter`: model, adapter class, key and filter push to the operation | `CatalogService.Partners`, `external/PartnerDirectory.*` | `CatalogService.http` |
 | From SOAP into OData: `$expand` with `$select` of renamed columns, filters through the association, `$search` on the SOAP entity | `CatalogService.Partners` | `CatalogService.http` |
 | Development credentials vs. production destinations | `consumer/package.json` | |
+
+### Agents and other clients
+
+| Feature | Model | Request |
+| --- | --- | --- |
+| The same services for AI agents over MCP (`@cap-js/mcp`): `describe`, `query` (CQL), `call`; one question over three systems, totals, the agent as the user (`@restrict`) | `consumer/srv/mcp.cds`, [consumer/AI-AGENTS.md](consumer/AI-AGENTS.md) | `MCP.http` |
+| Hints for agents in the docs (`cds.query.remote.agentHints`): of the service (columns, limit, totals, which entity comes from which system, the budget) and of entities and elements (key reads, row caps, fields filtered in memory, associations to another system); OData `Core.Description` / MCP `describe` | every `@remote` service | `CatalogService.http` (`$metadata`), `MCP.http` (`describe`) |
+| One budget per incoming request over every layer (`cds.query.remote.budget`: requests, rows, seconds; 502 `REMOTE_BUDGET_EXCEEDED`) | `consumer/package.json` | `CatalogService.http` |
+| Audit line per request (`cds.query.remote.audit`: user, protocol, status, backend requests and rows; no values) | `consumer/package.json` | every request (consumer log) |
+| Backend error texts kept in the log, a generic message with a reference to the client (`maskBackendErrors`, profile `production`) | `consumer/package.json` | |
 
 ### Caching
 
