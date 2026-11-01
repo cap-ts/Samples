@@ -56,7 +56,7 @@ Each app has its own README: [producer-catalog](producer-catalog/README.md),
 | --- | --- | --- | --- |
 | `producer-catalog` | SOAP 1.1 (plain Node.js, `soap`) | `FindProducts` (server-side filter, sort, paging; `item` list; an element with an attribute; nested values), `GetStock` (one product per call) | 8091 |
 | `producer-finance` | SOAP 1.1 (plain Node.js, `soap`) | `GetRates` (one `From` per call; a WS-Security header is required) | 8092 |
-| `consumer` | CAP | three SOAP services (`/soap/catalog`, `/soap/rates`, `/soap/countrycodes`) and `ShopService` (`/odata/v4/shop`) | 4004 |
+| `consumer` | CAP | three SOAP services (`/soap/catalog`, `/soap/rates`, `/soap/countrycodes`), an internal one (`Warehouses`, `@protocol: 'none'`, no route) and `ShopService` (`/odata/v4/shop`) | 4004 |
 
 ---
 
@@ -88,6 +88,7 @@ The boot log names the adapter class of each SOAP service and how it was found:
 [soap] - serving ProductCatalog { at: ['/soap/catalog'], impl: 'srv/external/ProductCatalog.js' }
 [soap] - serving ExchangeRates { at: ['/soap/rates'], impl: 'srv/adapters/ExchangeRates.ts' }
 [soap] - serving CountryCodes { at: ['/soap/countrycodes'], impl: 'srv/adapters/CountryCodes.js' }
+[soap] - serving Warehouses { at: [], internal, impl: 'srv/adapters/Warehouses.js' }
 ```
 
 ---
@@ -102,6 +103,7 @@ producer terminals log each SOAP call with its input and header.
 | [`ProductCatalog.http`](consumer/test/http/ProductCatalog.http) | query options, push-down, paging with `@odata.nextLink`, read by key, the short routes, fan-out, `multipleSelection: true`, mandatory filters, errors, the hints in `$metadata`, the CAP-served endpoint |
 | [`ExchangeRates.http`](consumer/test/http/ExchangeRates.http) | `@requires` (401 / 403), WS-Security header, TypeScript adapter, fan-out with `$orderby` / `$top` / `$count`, date / date-time / GUID literals |
 | [`CountryCodes.http`](consumer/test/http/CountryCodes.http) | `mock()` |
+| [`Warehouses.http`](consumer/test/http/Warehouses.http) | an internal SOAP service (`@protocol: 'none'`): no route (404), read in-process through `ShopService.Sites` (its `@requires` checked for the request's user: `bob` 403) |
 | [`ShopService.http`](consumer/test/http/ShopService.http) | the SOAP services in-process: `srv.run` with `SELECT.__skipPagination`, `soap.read`, `soap.createRequest`, the utility API |
 
 Users (password = user name): `alice` (role `finance`), `bob` (no role).
@@ -129,6 +131,7 @@ Model and code files are under `consumer/srv/`, requests under `consumer/test/ht
 | `@Soap.filterRestriction: { multipleSelection: true }`: a key list stays one call, the hook passes it | `ProductCatalog.Products` | `ProductCatalog.http` |
 | `@Soap.adapter` on the service | `external/ExchangeRates.cds` | `ExchangeRates.http` |
 | `@requires` on a SOAP service (401 / 403 on the routes) | `external/ExchangeRates.cds` | `ExchangeRates.http` |
+| `@protocol: 'none'`: an internal SOAP service, no route, in-process reads only | `external/Warehouses.cds` | `Warehouses.http` |
 
 ### Adapter class (`soap.Service`)
 
@@ -136,7 +139,7 @@ Model and code files are under `consumer/srv/`, requests under `consumer/test/ht
 | --- | --- | --- |
 | Found by the file convention (`<Service>.js` next to the `.cds`) | `external/ProductCatalog.js` | `ProductCatalog.http` |
 | Named by `@Soap.adapter`, written in TypeScript | `adapters/ExchangeRates.ts` | `ExchangeRates.http` |
-| Named by `cds.requires.<Service>.impl` | `adapters/CountryCodes.js` | `CountryCodes.http` |
+| Named by `cds.requires.<Service>.impl` | `adapters/CountryCodes.js`, `adapters/Warehouses.js` | `CountryCodes.http`, `Warehouses.http` |
 | `strict: true` (a missing class stops the start); `cds.features.strict` for every SOAP service (profile `production`) | `package.json`, `ExchangeRates` | |
 | `header()`: a plain map | `external/ProductCatalog.js` | `ProductCatalog.http` |
 | `header()`: a structured WS-Security header, reading `this.options` | `adapters/ExchangeRates.ts` | `ExchangeRates.http` |

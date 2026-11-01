@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The contract of a warehouse directory. The sample does not call it: its adapter class answers from a mock(). -->
+<definitions name="Warehouses"
+             targetNamespace="urn:samples:warehouses"
+             xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="urn:samples:warehouses"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <types>
+    <xsd:schema targetNamespace="urn:samples:warehouses" elementFormDefault="qualified">
+      <xsd:element name="ListWarehousesRequest"><xsd:complexType><xsd:sequence/></xsd:complexType></xsd:element>
+      <xsd:element name="ListWarehousesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Warehouse" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="Code" type="xsd:string"/>
+                  <xsd:element name="City" type="xsd:string"/>
+                  <xsd:element name="Country" type="xsd:string"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+  <message name="ListWarehousesInput"><part name="parameters" element="tns:ListWarehousesRequest"/></message>
+  <message name="ListWarehousesOutput"><part name="parameters" element="tns:ListWarehousesResponse"/></message>
+  <portType name="WarehousesPortType">
+    <operation name="ListWarehouses"><input message="tns:ListWarehousesInput"/><output message="tns:ListWarehousesOutput"/></operation>
+  </portType>
+  <binding name="WarehousesBinding" type="tns:WarehousesPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="ListWarehouses">
+      <soap:operation soapAction="urn:samples:warehouses#ListWarehouses"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+  <service name="Warehouses">
+    <port name="WarehousesPort" binding="tns:WarehousesBinding">
+      <soap:address location="http://localhost:8094/soap/warehouses"/>
+    </port>
+  </service>
+</definitions>

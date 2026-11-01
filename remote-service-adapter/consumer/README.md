@@ -127,6 +127,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `MyOrders` | `where CreatedBy = $user` |
 | `BusyCustomers` | GROUP BY with HAVING |
 | `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start; a third record (`Status = 'C'`) is switched off with `enabled: false` |
+| `OrderMix` | GROUP BY written as `select from ... distinct { ... } group by`: every group with its aggregates, like the `projection on` form |
 | `Currencies` | DISTINCT |
 | `Entries` | writes through a second layer over a non-CRUD backend: the `@remote.write.*` settings CDS copied from `OrderManagementService.Entries` are applied once, by the layer below (one POST with `Op` per write) |
 

@@ -53,6 +53,14 @@
         },
         "impl": "srv/adapters/CountryCodes"
       },
+      "Warehouses": {
+        "kind": "soap",
+        "wsdl": "srv/external/wsdl/Warehouses.wsdl",
+        "credentials": {
+          "destination": "SOAP_SAMPLES_WAREHOUSES"
+        },
+        "impl": "srv/adapters/Warehouses"
+      },
       "auth": {
         "kind": "mocked",
         "users": {

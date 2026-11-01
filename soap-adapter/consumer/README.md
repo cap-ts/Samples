@@ -16,10 +16,12 @@ consumer/
 │   │   ├── ProductCatalog.js         ← its adapter class: found by the file convention (<Service>.js next to the .cds)
 │   │   ├── ExchangeRates.cds         ← @Soap.* model of producer-finance (@path 'rates', @requires, @Soap.adapter)
 │   │   ├── CountryCodes.cds          ← a SOAP service that is only mocked
+│   │   ├── Warehouses.cds            ← an internal SOAP service (@protocol: 'none': no route), only mocked
 │   │   └── wsdl/*.wsdl               ← the local WSDL files (cds.requires.<Service>.wsdl)
 │   ├── adapters/
 │   │   ├── ExchangeRates.ts          ← adapter class in TypeScript, named by @Soap.adapter
-│   │   └── CountryCodes.js           ← adapter class named by cds.requires.CountryCodes.impl, answers from mock()
+│   │   ├── CountryCodes.js           ← adapter class named by cds.requires.CountryCodes.impl, answers from mock()
+│   │   └── Warehouses.js             ← adapter class of Warehouses (impl), answers from mock()
 │   ├── shop-service.cds              ← ShopService: a CAP service on top of the SOAP services
 │   └── shop-service.js               ← srv.run / soap.read / soap.createRequest / the utility API
 └── test/http/*.http                  ← one request file per service (VS Code REST Client)
@@ -32,6 +34,7 @@ consumer/
 | `cds.requires.ProductCatalog` | `kind: "soap"`, the local `wsdl`, `credentials.destination` + `credentials.path` (appended to the destination URL) |
 | `cds.requires.ExchangeRates` | the same, plus `strict: true` (a missing adapter class stops the start) and `wsseUser`, a setting of its own that the adapter class reads from `this.options` |
 | `cds.requires.CountryCodes` | `impl`: the module of its adapter class |
+| `cds.requires.Warehouses` | the same for the internal service (`@protocol: 'none'` is in its model) |
 | `cds.requires.auth` | Mocked users: `alice` (role `finance`), `bob` (no role); password = user name |
 | `cds.query.soap` | `pageSize: 4` (small, to show `@odata.nextLink`), `multiSelectionConcurrency: 2` (fan-out batches), `pushFilters: true`, `agentHints: true` (`SOAP hints: ...` in the docs of `Stock` and `Rates`: their mandatory filter and the one-value-per-call rule, in `$metadata` and for MCP `describe`) |
 | `cds.[production].features.strict` | In production every SOAP service needs its adapter class: a missing one stops the start (`strict` of one service: `ExchangeRates`) |
@@ -92,9 +95,18 @@ The adapter class registers:
 [`test/http/CountryCodes.http`](test/http/CountryCodes.http). The class named by `cds.requires.CountryCodes.impl`
 registers a `mock()`: no destination, no WSDL loading, no HTTP. A mock's answer is final, so it filters itself.
 
+### Warehouses (internal): `@protocol: 'none'`
+
+[`srv/external/Warehouses.cds`](srv/external/Warehouses.cds),
+[`test/http/Warehouses.http`](test/http/Warehouses.http). A SOAP service read only in-process: `@protocol: 'none'`
+mounts no route (`/soap/warehouses/Sites` and `/warehouses/Sites` answer 404) and CAP does not serve it over OData;
+the boot line says `at: [], internal`. `ShopService.Sites` reads it with `srv.run`. Every in-process read checks
+`@requires: 'finance'` (and a `@restrict`) for the request's user, however the caller connected (a handler, `soap.read`,
+a `@remote` projection): `bob` gets 403 (see Authentication in the package README).
+
 ### The same services as CAP serves them
 
-Every SOAP service of the model is also an OData V4 service of the application (`/odata/v4/catalog`,
+Every SOAP service of the model except the internal Warehouses is also an OData V4 service of the application (`/odata/v4/catalog`,
 `/odata/v4/rates`, `/odata/v4/country-codes`). Reads there run the same pipeline; writes answer 405.
 
 ## ShopService (`/odata/v4/shop`): the SOAP services in-process
@@ -106,6 +118,7 @@ Every SOAP service of the model is also an OData V4 service of the application (
 | `Offers` | `catalog.run(SELECT ...)` on ProductCatalog (the same pipeline as its routes; `SELECT.__skipPagination`: every matching product, not a page of `pageSize`), one `soap.read(...)` with the list of products on `Stock` (one SOAP call per product: the fan-out of `multipleSelection: false` applies to every read, not only to the routes), `soap.read` on ExchangeRates, the CountryCodes mock |
 | `convert(...)` | `soap.read` on ExchangeRates; 404 from the handler without a rate |
 | `stockOf(...)` | `soap.createRequest` and `catalog.dispatch(...)` on `Stock`; 404 from the handler without stock |
+| `Sites` | `srv.run` on the internal Warehouses service (no route of its own), country names from the CountryCodes mock |
 | `soapInfo()` | `soap.isSoapService`, `soap.getEntityKeyFields`, `soap.Service.FORBIDDEN_SOAP_HEADERS`, `soap.Service.stripSensitiveHeaders`, `soap.dedupByKeys` |
 
 ## Security middleware

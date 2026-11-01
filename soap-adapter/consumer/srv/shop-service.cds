@@ -1,6 +1,7 @@
 using { ProductCatalog } from './external/ProductCatalog';
 using { ExchangeRates } from './external/ExchangeRates';
 using { CountryCodes } from './external/CountryCodes';
+using { Warehouses } from './external/Warehouses';
 
 /**
  * ShopService: an ordinary CAP service (OData V4) that uses the SOAP services in-process: `srv.run(SELECT ...)` on the
@@ -23,6 +24,18 @@ service ShopService {
             Warehouse    : String(20);
             SupplierName : String(60);
             Country      : String(60);
+    }
+
+    /**
+     * The sites of the internal Warehouses SOAP service (`@protocol: 'none'`: no route of its own), read in-process.
+     * The `@requires: 'finance'` of Warehouses is not checked here: this service's authorization applies.
+     */
+    @readonly
+    @cds.persistence.skip
+    entity Sites {
+        key Code    : String(20);
+            City    : String(60);
+            Country : String(60);
     }
 
     /** The stock of one product: a request built with `soap.createRequest` and dispatched to ProductCatalog. */

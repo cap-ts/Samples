@@ -82,6 +82,11 @@ Authorization: {{alice}}
 GET {{server}}/SalesByStatus?$filter=Status eq 'O'&$orderby=Total desc&$top=1
 Authorization: {{alice}}
 
+### GROUP BY written as select from ... distinct: every (Status, Currency) group with its count and total, $count is
+### the number of groups (the same groups as SalesByStatus)
+GET {{server}}/OrderMix?$count=true
+Authorization: {{alice}}
+
 ### DISTINCT
 GET {{server}}/Currencies
 Authorization: {{alice}}

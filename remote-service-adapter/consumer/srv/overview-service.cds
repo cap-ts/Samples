@@ -161,6 +161,18 @@ service OverviewService {
             max(Amount) as Largest : Decimal(15, 2)
     } group by Status, Currency;
 
+    /**
+     * GROUP BY written as `select from`, with `distinct`: the same groups as the `projection on` form (SalesByStatus),
+     * every group with its aggregates; the key is one of the two group columns.
+     */
+    @readonly
+    entity OrderMix       as select from catalog.Orders distinct {
+        key Status,
+            Currency,
+            count(ID)   as Orders : Integer,
+            sum(Amount) as Total  : Decimal(15, 2)
+    } group by Status, Currency;
+
     /** DISTINCT */
     @readonly
     entity Currencies     as select from catalog.Orders distinct {

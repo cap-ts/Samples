@@ -8,6 +8,7 @@ module.exports = class ShopService extends cds.ApplicationService {
         const catalog = await cds.connect.to('ProductCatalog');
         const rates = await cds.connect.to('ExchangeRates');
         const countries = await cds.connect.to('CountryCodes');
+        const warehouses = await cds.connect.to('Warehouses');
 
         /** One rate through soap.read: a fresh request per call (headers of the inbound request stripped). */
         const rateOf = async (req, From, To) => {
@@ -55,6 +56,17 @@ module.exports = class ShopService extends cds.ApplicationService {
             if (limit?.rows) result = result.slice(offset, offset + limit.rows.val);
             if (count) result.$count = total;
             return result;
+        });
+
+        this.on('READ', 'Sites', async (req) => {
+            // srv.run on an internal SOAP service (@protocol: 'none'): in-process only, the same pipeline as a route
+            const query = SELECT.from('Warehouses.Sites');
+            const code = req.data?.Code;
+            if (code) query.where({ Code: code });
+            const names = Object.fromEntries((await countries.run(SELECT.from('CountryCodes.Countries'))).map((c) => [c.Code, c.Name]));
+            const sites = (await warehouses.run(query)).map((s) => ({ ...s, Country: names[s.Country] ?? s.Country }));
+            if (code) return sites[0] ?? req.reject(404, `No warehouse ${code}`);
+            return sites;
         });
 
         this.on('convert', async (req) => {

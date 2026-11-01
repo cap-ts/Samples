@@ -1,0 +1,31 @@
+# Warehouses: an internal SOAP service (@protocol: 'none'). No route is mounted; ShopService reads it in-process.
+
+@server = http://localhost:4004
+@alice = Basic alice:alice
+@bob = Basic bob:bob
+
+
+### No /soap route: 404, also for a user with the role of its @requires (finance)
+GET {{server}}/soap/warehouses/Sites
+Authorization: {{alice}}
+
+### No unprefixed route either: 404
+GET {{server}}/warehouses/Sites
+Authorization: {{alice}}
+
+### CAP does not serve it over OData either: 404
+GET {{server}}/odata/v4/warehouses/Sites
+Authorization: {{alice}}
+
+### In-process through ShopService.Sites: the mock's three sites, country names from CountryCodes
+GET {{server}}/odata/v4/shop/Sites
+Authorization: {{alice}}
+
+### A read by key
+GET {{server}}/odata/v4/shop/Sites('WH-SOUTH')
+Authorization: {{alice}}
+
+### bob has no role finance: 403. The in-process read of ShopService checks the @requires of Warehouses for the
+### request's user
+GET {{server}}/odata/v4/shop/Sites
+Authorization: {{bob}}
