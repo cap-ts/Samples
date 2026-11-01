@@ -85,6 +85,11 @@
           "path": "/soap/partners"
         }
       },
+      "[limits]": {
+        "LimitsProfile": {
+          "model": "profiles/limits"
+        }
+      },
       "auth": {
         "kind": "mocked",
         "users": {

@@ -14,6 +14,8 @@
           <xsd:element name="To" type="xsd:string"/>
           <xsd:element name="Rate" type="xsd:decimal"/>
           <xsd:element name="ValidOn" type="xsd:date"/>
+          <xsd:element name="PublishedAt" type="xsd:dateTime"/>
+          <xsd:element name="RateID" type="xsd:string"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:element name="GetRatesRequest">

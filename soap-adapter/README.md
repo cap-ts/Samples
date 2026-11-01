@@ -100,7 +100,7 @@ producer terminals log each SOAP call with its input and header.
 | File | Covers |
 | --- | --- |
 | [`ProductCatalog.http`](consumer/test/http/ProductCatalog.http) | query options, push-down, paging with `@odata.nextLink`, read by key, the short routes, fan-out, `multipleSelection: true`, mandatory filters, errors, the hints in `$metadata`, the CAP-served endpoint |
-| [`ExchangeRates.http`](consumer/test/http/ExchangeRates.http) | `@requires` (401 / 403), WS-Security header, TypeScript adapter, fan-out with `$orderby` / `$top` / `$count` |
+| [`ExchangeRates.http`](consumer/test/http/ExchangeRates.http) | `@requires` (401 / 403), WS-Security header, TypeScript adapter, fan-out with `$orderby` / `$top` / `$count`, date / date-time / GUID literals |
 | [`CountryCodes.http`](consumer/test/http/CountryCodes.http) | `mock()` |
 | [`ShopService.http`](consumer/test/http/ShopService.http) | the SOAP services in-process: `srv.run` with `SELECT.__skipPagination`, `soap.read`, `soap.createRequest`, the utility API |
 
@@ -124,6 +124,7 @@ Model and code files are under `consumer/srv/`, requests under `consumer/test/ht
 | `@Soap.path`: nested values, another element name | `ProductCatalog.Products`, `ExchangeRates.Rates` | both |
 | `item` lists and `$value` of an element with attributes | `ProductCatalog.Products` | `ProductCatalog.http` |
 | A parsed `xsd:date` as a `Date` element | `ExchangeRates.Rates.ValidOn` | `ExchangeRates.http` |
+| An `xsd:dateTime` as a `DateTime` element, a GUID as a `UUID` element | `ExchangeRates.Rates.PublishedAt`, `.RateID` | `ExchangeRates.http` |
 | `@Soap.filterRestriction`: `mandatoryFields`, `multipleSelection: false` (fan-out) | `ProductCatalog.Stock`, `ExchangeRates.Rates` | both |
 | `@Soap.filterRestriction: { multipleSelection: true }`: a key list stays one call, the hook passes it | `ProductCatalog.Products` | `ProductCatalog.http` |
 | `@Soap.adapter` on the service | `external/ExchangeRates.cds` | `ExchangeRates.http` |
@@ -150,11 +151,12 @@ Model and code files are under `consumer/srv/`, requests under `consumer/test/ht
 
 | Feature | Request |
 | --- | --- |
-| `$select`, `$filter` (`startswith`, `endswith`, `contains`, `tolower`, `in`, `and` / `or`, `null`, negative numbers, a doubled quote), `$orderby`, `$top`, `$skip`, `$count`; `$search` accepted and ignored | `ProductCatalog.http` |
+| `$select`, `$filter` (`startswith`, `endswith`, `contains`, `tolower`, `length`, `concat`, `substring`, `in`, `not`, `and` before `or`, a function on the left of a comparison, `null`, negative numbers, a doubled quote), `$orderby`, `$top`, `$skip`, `$count`; `$search` accepted and ignored | `ProductCatalog.http` |
+| Unquoted literals of `$filter`: a date, a date-time with an offset (compared as an instant), a GUID | `ExchangeRates.http` |
 | The short routes `/<path>/<Entity>` (without `/soap`) | `ProductCatalog.http` |
 | Paging of `cds.query.soap.pageSize` with `@odata.nextLink`, `$skiptoken` | `ProductCatalog.http` |
 | Read by key, 404 | `ProductCatalog.http`, `CountryCodes.http` |
-| 400: `$expand`, a malformed `$filter`, a function on the left of a comparison, a missing mandatory filter, `in` beside `or` | `ProductCatalog.http`, `ExchangeRates.http` |
+| 400: `$expand`, a malformed `$filter`, a literal on the left of a comparison, a missing mandatory filter, `in` beside `or` | `ProductCatalog.http`, `ExchangeRates.http` |
 | Fan-out, one SOAP call per key value, `$orderby` / `$top` / `$count` on the merged rows | `ProductCatalog.http`, `ExchangeRates.http` |
 | The CAP-served OData endpoint of a SOAP service; writes 405 | `ProductCatalog.http`, `ExchangeRates.http` |
 

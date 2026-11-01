@@ -30,6 +30,16 @@ Authorization: Basic alice:alice
 GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ValidOn gt 2026-10-14&$count=true
 Authorization: Basic alice:alice
 
+### A date-time literal with an offset (Edm.DateTimeOffset) is compared as an instant: 11:00 +02:00 is 09:00 UTC, so
+### the rates published at 09:30 and 14:00 UTC (GBP, JPY), not the one of 08:00 (USD). In a URL the + of the offset is
+### written %2B (a plain + is a space)
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and PublishedAt ge 2026-10-14T11:00:00%2B02:00&$select=ToCurrency,PublishedAt
+Authorization: Basic alice:alice
+
+### An unquoted GUID literal (Edm.Guid): the one rate with this RateID
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and RateID eq 3f1c2a64-7b1e-4c0a-9d2e-5a8b6c4d1e02&$select=ToCurrency,Rate,RateID
+Authorization: Basic alice:alice
+
 ### ToCurrency as a list of the operation's input
 GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ToCurrency in ('USD','GBP')
 Authorization: Basic alice:alice

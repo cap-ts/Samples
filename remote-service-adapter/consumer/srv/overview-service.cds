@@ -144,12 +144,14 @@ service OverviewService {
     /**
      * GROUP BY on two columns: the aggregate cache (cds.query.remote.cache.aggregates) answers repeated reads.
      * `@remote.warmUp` fills it at start for the unfiltered read and for `Status = 'O'`, one entry each, and renews them
-     * before their time to live (cds.query.remote.cache.ttl) ends.
+     * before their time to live (cds.query.remote.cache.ttl) ends. The third record is kept but switched off
+     * (`enabled: false`): no read for `Status = 'C'` (the log shows two warm-up lines of SalesByStatus, not three).
      */
     @readonly
     @remote.warmUp: [
         { limit: 1 },
-        { where: (Status = 'O') }
+        { where: (Status = 'O') },
+        { where: (Status = 'C'), enabled: false }
     ]
     entity SalesByStatus  as projection on catalog.Orders {
         key Status,

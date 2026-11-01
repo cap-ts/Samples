@@ -12,6 +12,7 @@ consumer/
 ├── package.json                      ← cds.requires (backends, mocked users), cds.query.remote, cds.mcp, log levels
 ├── AI-AGENTS.md                      ← the same services for AI agents over MCP (@cap-js/mcp)
 ├── _i18n/messages.properties         ← texts of the write rules (@remote.assert)
+├── profiles/limits.cds               ← loaded in the profile limits only: @remote.warmUp.enabled: false on ProductFinder
 ├── db/
 │   ├── schema.cds                    ← Regions: the consumer's own table
 │   └── data/                         ← its CSV
@@ -71,6 +72,7 @@ therefore declares the associations the projections use, each with its ON condit
 | --- | --- |
 | `cds.requires.CustomerService` / `ProductService` / `SalesService` | `kind`, `model`; `[development]`: the producer URL with basic authentication; `[production]`: a BTP destination |
 | `cds.requires.PartnerDirectory` | `kind: "soap"`, the local `wsdl`, `credentials.destination` and `credentials.path`. The destination `RSA_SAMPLES_PARTNERS` is defined in the `watch` scripts through the Cloud SDK's `destinations` environment variable |
+| `cds.requires.[limits].LimitsProfile` | Profile `limits` only: `model: "profiles/limits"` adds [`profiles/limits.cds`](profiles/limits.cds) to the model, which switches the warm-up of `OverviewService.ProductFinder` off (`@remote.warmUp.enabled: false`) |
 | `cds.requires.auth` | Mocked users: `alice` (admin), `bob` (CompanyCode 1000), `kim` (CompanyCode 2000), `sam` (no CompanyCode); password = user name |
 | `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `paging`, `capClientLog`, `search.maxRows`, `aggregate.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...); `warmUp` runs the `@remote.warmUp` reads also in development (`enabled: true`) and makes the server wait for them (`await`: at most 15 seconds), two at a time (`concurrency`), for the application without tenant (`tenants: []`) |
 | `cds.query.remote.budget` / `audit` / `agentHints` / `[production].maskBackendErrors` | The settings for agents and other clients: one budget per request, an audit line per request, hints in the docs of the services and entities, generic backend error texts in production ([AI-AGENTS.md](AI-AGENTS.md) "Guardrails for agents") |
@@ -124,7 +126,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `OpenOrders` | the projection's own WHERE: a plain term pushed, a to-one path and `$now` evaluated in memory; a read by key outside the WHERE is 404 |
 | `MyOrders` | `where CreatedBy = $user` |
 | `BusyCustomers` | GROUP BY with HAVING |
-| `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start |
+| `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start; a third record (`Status = 'C'`) is switched off with `enabled: false` |
 | `Currencies` | DISTINCT |
 | `Entries` | writes through a second layer over a non-CRUD backend: the `@remote.write.*` settings CDS copied from `OrderManagementService.Entries` are applied once, by the layer below (one POST with `Op` per write) |
 

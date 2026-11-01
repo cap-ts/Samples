@@ -35,5 +35,9 @@ service ExchangeRates {
         key ToCurrency   : String(3);
             Rate         : Decimal(15, 5);
             ValidOn      : Date;
+            /** `xsd:dateTime` in the response: a `$filter` on it takes a date-time literal with an offset. */
+            PublishedAt  : DateTime;
+            /** A GUID as `xsd:string`: a `$filter` on it takes an unquoted GUID literal. */
+            RateID       : UUID;
     }
 }

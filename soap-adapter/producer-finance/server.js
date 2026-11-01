@@ -2,7 +2,7 @@
  * ExchangeRates: a SOAP 1.1 web service with one operation, GetRates.
  *
  * Input:  exactly one From currency (a fault without) and any number of To currencies (all without).
- * Output: Rates/Rate[] (From, To, Rate, ValidOn).
+ * Output: Rates/Rate[] (From, To, Rate, ValidOn, PublishedAt, RateID).
  *
  * Every call needs a WS-Security UsernameToken SOAP header with a Username (a fault without), as many enterprise
  * services do. The password is not checked: this is a sample.

@@ -82,6 +82,9 @@ The adapter class registers:
 - `From` / `To` are reserved words in CDS: the elements are `FromCurrency` / `ToCurrency` with `@Soap.path: 'From'`.
 - `@requires: 'finance'`: the routes answer 401 without a user, 403 without the role.
 - `ValidOn` is an `xsd:date` in the response and a `Date` element: answered as `2026-10-14`.
+- `PublishedAt` (`xsd:dateTime`, a `DateTime` element) and `RateID` (a GUID, a `UUID` element) take the unquoted
+  literals of `$filter`: `PublishedAt ge 2026-10-14T11:00:00+02:00` (`%2B02:00` in the URL) is compared as an instant (09:00 UTC),
+  `RateID eq 3f1c2a64-...` as a GUID.
 
 ### CountryCodes (`/soap/countrycodes`): `impl` and `mock()`
 
