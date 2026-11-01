@@ -134,6 +134,11 @@ service OrderManagementService {
     /** Implemented in the handler: a query with path columns, aliases and an expression. */
     function orderCard(ID : String(10))                         returns OrderCard;
 
+    /** Implemented in the handler: what the class API of RemoteApplicationService reports. */
+    function adapterInfo()                                      returns {
+        supportsSkipPagination : Boolean;
+    };
+
     type OrderCard {
         ID             : String(10);
         Title          : String(60);

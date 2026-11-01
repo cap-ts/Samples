@@ -189,6 +189,7 @@ OData clients):
 | `budget: { requests: 200, rows: 100000, seconds: 60 }` | One budget per tool call over every service layer: a query that would need more is answered `Request budget exceeded: ... cds.query.remote.budget.requests (200)`, before the next backend request. |
 | `audit: true` | One `[remote-audit]` line per call: `READ CatalogService.Orders {"user":"alice","protocol":"mcp","status":200,"backendRequests":2,"backendRows":4,...}`, no filter values. MCP and OData calls are told apart by `protocol`. |
 | `maskBackendErrors: true` (profile `production`) | A backend's error text (host, table, values) stays in the log; the agent gets a generic message with the reference of the log line. |
+| `cds.query.soap.agentHints: true` | `describe` of an entity over a SOAP operation with a mandatory filter (`PartnerChannels`) also shows `SOAP hints: Every read needs a filter on PartnerID ...`, next to the adapter's own `The SOAP source needs a filter on PartnerID in every read`. A query without it is a tool error with `Mandatory filter field(s) missing: PartnerID`, so the agent can correct the query. |
 
 ## 🚧 Limits
 

@@ -1,8 +1,9 @@
 /**
- * PartnerDirectory: a SOAP 1.1 web service with one operation, GetPartners.
+ * PartnerDirectory: a SOAP 1.1 web service with two operations.
  *
- * Input:  zero or more PartnerID elements and an optional Country.
- * Output: the matching Partner entries (all of them without input), each with a nested Contact.
+ * GetPartners:  zero or more PartnerID elements and an optional Country; the matching Partner entries (all of them
+ *               without input), each with a nested Contact.
+ * GetChannels:  exactly one PartnerID (a SOAP fault otherwise); the partner's contact channels (Email, Phone).
  *
  * Stands in for a legacy SOAP backend. It accepts any credentials: the consumer reaches it through a destination
  * with basic authentication, as it would reach a real system.
@@ -30,6 +31,17 @@ const service = {
                 );
                 process.stdout.write(`[soap] GetPartners ${JSON.stringify(args)} -> ${Partner.length} partner(s)\n`);
                 return { Partner };
+            },
+            GetChannels(input) {
+                // One partner per call, like many legacy operations: the PartnerID is required.
+                const id = input?.PartnerID;
+                if (!id || Array.isArray(id)) {
+                    throw { Fault: { faultcode: 'soap:Client', faultstring: 'GetChannels needs exactly one PartnerID' } };
+                }
+                const contact = partners.find((p) => p.PartnerID === id)?.Contact ?? {};
+                const Channel = Object.entries(contact).map(([channel, address]) => ({ PartnerID: id, Channel: channel, Address: address }));
+                process.stdout.write(`[soap] GetChannels ${JSON.stringify({ PartnerID: id })} -> ${Channel.length} channel(s)\n`);
+                return { Channel };
             },
         },
     },

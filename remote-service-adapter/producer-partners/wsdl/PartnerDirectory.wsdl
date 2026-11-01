@@ -38,6 +38,27 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
+      <xsd:complexType name="Channel">
+        <xsd:sequence>
+          <xsd:element name="PartnerID" type="xsd:string"/>
+          <xsd:element name="Channel" type="xsd:string"/>
+          <xsd:element name="Address" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:element name="GetChannelsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="PartnerID" type="xsd:string" minOccurs="1" maxOccurs="1"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetChannelsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Channel" type="tns:Channel" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
     </xsd:schema>
   </types>
 
@@ -47,11 +68,21 @@
   <message name="GetPartnersOutput">
     <part name="parameters" element="tns:GetPartnersResponse"/>
   </message>
+  <message name="GetChannelsInput">
+    <part name="parameters" element="tns:GetChannelsRequest"/>
+  </message>
+  <message name="GetChannelsOutput">
+    <part name="parameters" element="tns:GetChannelsResponse"/>
+  </message>
 
   <portType name="PartnerDirectoryPortType">
     <operation name="GetPartners">
       <input message="tns:GetPartnersInput"/>
       <output message="tns:GetPartnersOutput"/>
+    </operation>
+    <operation name="GetChannels">
+      <input message="tns:GetChannelsInput"/>
+      <output message="tns:GetChannelsOutput"/>
     </operation>
   </portType>
 
@@ -59,6 +90,11 @@
     <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
     <operation name="GetPartners">
       <soap:operation soapAction="urn:samples:partner-directory#GetPartners"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="GetChannels">
+      <soap:operation soapAction="urn:samples:partner-directory#GetChannels"/>
       <input><soap:body use="literal"/></input>
       <output><soap:body use="literal"/></output>
     </operation>

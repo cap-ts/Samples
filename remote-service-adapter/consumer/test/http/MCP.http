@@ -41,6 +41,31 @@ Accept: application/json, text/event-stream
 
 { "jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from PartnerCustomers { PartnerName, Country, CustomerName, CustomerStatus } where Country = 'DE'" } } }
 
+### describe of a SOAP source with a mandatory filter: the docs say "The SOAP source needs a filter on PartnerID in
+### every read" (cds.query.remote.agentHints reads @Soap.filterRestriction of external/PartnerDirectory.cds)
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": { "name": "CatalogService-describe", "arguments": { "entities": ["PartnerChannels"] } } }
+
+### The agent follows the hint: one partner per query
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 12, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from PartnerChannels { Channel, Address } where PartnerID = 'BP02'" } } }
+
+### Without the filter: the tool answers with the 400 MISSING_MANDATORY_FILTER, so the agent can correct its query
+POST {{catalog}}
+Authorization: Basic alice:alice
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": { "name": "CatalogService-query", "arguments": { "cql": "SELECT from PartnerChannels { PartnerID, Channel }" } } }
+
 ### Totals: group by and aggregates are computed by the service (one read of the sales system with the filter pushed)
 POST {{catalog}}
 Authorization: Basic alice:alice

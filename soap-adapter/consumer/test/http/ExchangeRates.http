@@ -22,6 +22,14 @@ Authorization: Basic alice:alice
 GET {{server}}/Rates?$filter=FromCurrency in ('EUR','GBP','USD')&$orderby=Rate desc&$top=3&$count=true&$select=FromCurrency,ToCurrency,Rate
 Authorization: Basic alice:alice
 
+### An unquoted date literal (Edm.Date), compared with ValidOn by the runtime: the three EUR rates of 2026-10-14 ...
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ValidOn eq 2026-10-14&$select=ToCurrency,Rate,ValidOn
+Authorization: Basic alice:alice
+
+### ... and none after it
+GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ValidOn gt 2026-10-14&$count=true
+Authorization: Basic alice:alice
+
 ### ToCurrency as a list of the operation's input
 GET {{server}}/Rates?$filter=FromCurrency eq 'EUR' and ToCurrency in ('USD','GBP')
 Authorization: Basic alice:alice
@@ -30,6 +38,14 @@ Authorization: Basic alice:alice
 GET {{server}}/Rates?$filter=ToCurrency eq 'USD'
 Authorization: Basic alice:alice
 
+### cds.query.soap.agentHints: "SOAP hints: Every read needs a filter on FromCurrency ..." in the $metadata
+GET http://localhost:4004/odata/v4/rates/$metadata
+Authorization: Basic alice:alice
+
 ### Through the CAP-served OData endpoint (@requires applies there as well)
 GET http://localhost:4004/odata/v4/rates/Rates?$filter=FromCurrency eq 'USD'
+Authorization: Basic alice:alice
+
+### mandatoryFields there as well: 400 MISSING_MANDATORY_FILTER
+GET http://localhost:4004/odata/v4/rates/Rates?$filter=ToCurrency eq 'USD'
 Authorization: Basic alice:alice

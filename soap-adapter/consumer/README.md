@@ -21,7 +21,7 @@ consumer/
 │   │   ├── ExchangeRates.ts          ← adapter class in TypeScript, named by @Soap.adapter
 │   │   └── CountryCodes.js           ← adapter class named by cds.requires.CountryCodes.impl, answers from mock()
 │   ├── shop-service.cds              ← ShopService: a CAP service on top of the SOAP services
-│   └── shop-service.js               ← srv.run / soap.read / the utility API
+│   └── shop-service.js               ← srv.run / soap.read / soap.createRequest / the utility API
 └── test/http/*.http                  ← one request file per service (VS Code REST Client)
 ```
 
@@ -33,7 +33,8 @@ consumer/
 | `cds.requires.ExchangeRates` | the same, plus `strict: true` (a missing adapter class stops the start) and `wsseUser`, a setting of its own that the adapter class reads from `this.options` |
 | `cds.requires.CountryCodes` | `impl`: the module of its adapter class |
 | `cds.requires.auth` | Mocked users: `alice` (role `finance`), `bob` (no role); password = user name |
-| `cds.query.soap` | `pageSize: 4` (small, to show `@odata.nextLink`), `multiSelectionConcurrency: 2` (fan-out batches), `pushFilters: true` |
+| `cds.query.soap` | `pageSize: 4` (small, to show `@odata.nextLink`), `multiSelectionConcurrency: 2` (fan-out batches), `pushFilters: true`, `agentHints: true` (`SOAP hints: ...` in the docs of `Stock` and `Rates`: their mandatory filter and the one-value-per-call rule, in `$metadata` and for MCP `describe`) |
+| `cds.[production].features.strict` | In production every SOAP service needs its adapter class: a missing one stops the start (`strict` of one service: `ExchangeRates`) |
 
 The destinations `SOAP_SAMPLES_CATALOG` and `SOAP_SAMPLES_FINANCE` are defined in the `watch` scripts through the Cloud
 SDK's `destinations` environment variable. On SAP BTP they are destinations of the destination service; the caller's
@@ -51,7 +52,7 @@ JWT selects the tenant's destination.
 
 | Entity | Annotations | Shows |
 | --- | --- | --- |
-| `Products` | `@Soap.operation: 'FindProducts'`, `@Soap.binding: { rootRequest, rootResponse: 'Products' }`, `@Soap.path: 'Supplier.Name'` | the `item` list unwrapped, `$value` of an element with an attribute (`Price`), nested values |
+| `Products` | `@Soap.operation: 'FindProducts'`, `@Soap.binding: { rootRequest, rootResponse: 'Products' }`, `@Soap.filterRestriction: { multipleSelection: true }`, `@Soap.path: 'Supplier.Name'` | the `item` list unwrapped, `$value` of an element with an attribute (`Price`), nested values |
 | `Stock` | `@Soap.operation: 'GetStock'`, `@Soap.rootResponse: 'Stock'`, `@Soap.filterRestriction: { mandatoryFields: ['ProductID'], multipleSelection: false }` | the fan-out of `ProductID in (...)`, the mandatory filter, the 400 for `in` beside `or` |
 
 The adapter class registers:
@@ -75,6 +76,8 @@ The adapter class registers:
 - `@Soap.adapter: 'srv/adapters/ExchangeRates'` names the TypeScript class (no extension: `.ts` is taken first). Node.js
   22.18 and later load it without a build step.
 - `header(Rates, ...)` returns a structured header `{ value, name, prefix, xmlns }`: a WS-Security `UsernameToken`.
+- `request(Rates, ...)` returns `__skipPagination: true` with the input: GetRates answers every rate of a currency at
+  once, so that answer is never cut to a page of `cds.query.soap.pageSize` (the routes still page what they answer).
 - `@Soap.rootResponse: 'Rates.Rate'` takes precedence over `@Soap.binding.rootResponse`.
 - `From` / `To` are reserved words in CDS: the elements are `FromCurrency` / `ToCurrency` with `@Soap.path: 'From'`.
 - `@requires: 'finance'`: the routes answer 401 without a user, 403 without the role.
@@ -97,8 +100,9 @@ Every SOAP service of the model is also an OData V4 service of the application (
 
 | Operation | Uses |
 | --- | --- |
-| `Offers` | `catalog.run(SELECT ...)` on ProductCatalog (the same pipeline as its routes), `soap.read(...)` per product on `Stock` (one product per call: the fan-out is a feature of the routes), `soap.read` on ExchangeRates, the CountryCodes mock |
+| `Offers` | `catalog.run(SELECT ...)` on ProductCatalog (the same pipeline as its routes; `SELECT.__skipPagination`: every matching product, not a page of `pageSize`), one `soap.read(...)` with the list of products on `Stock` (one SOAP call per product: the fan-out of `multipleSelection: false` applies to every read, not only to the routes), `soap.read` on ExchangeRates, the CountryCodes mock |
 | `convert(...)` | `soap.read` on ExchangeRates; 404 from the handler without a rate |
+| `stockOf(...)` | `soap.createRequest` and `catalog.dispatch(...)` on `Stock`; 404 from the handler without stock |
 | `soapInfo()` | `soap.isSoapService`, `soap.getEntityKeyFields`, `soap.Service.FORBIDDEN_SOAP_HEADERS`, `soap.Service.stripSensitiveHeaders`, `soap.dedupByKeys` |
 
 ## Security middleware

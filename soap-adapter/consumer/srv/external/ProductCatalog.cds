@@ -13,11 +13,16 @@ service ProductCatalog {
     /**
      * FindProducts answers `Products/item[]`: `rootResponse` drills to `Products`, the `item` list is unwrapped.
      * `Price` arrives as `<Price currency="EUR">29.99</Price>` ({ $value, attributes }): the `$value` is read.
+     * `multipleSelection: true`: the operation takes a list of ProductID, so `ProductID in (...)` stays one call and the
+     * request() hook passes the list (no mandatory field: a read without a filter is allowed).
      */
-    @Soap.operation: 'FindProducts'
-    @Soap.binding  : {
+    @Soap.operation        : 'FindProducts'
+    @Soap.binding          : {
         rootRequest : 'FindProductsRequest',
         rootResponse: 'Products'
+    }
+    @Soap.filterRestriction: {
+        multipleSelection: true
     }
     entity Products {
         key ProductID    : String(10);
@@ -37,7 +42,8 @@ service ProductCatalog {
 
     /**
      * GetStock takes exactly one ProductID: `multipleSelection: false` turns `ProductID in (...)` into one SOAP call per
-     * value (on the /soap routes), `mandatoryFields` rejects a request without it (400).
+     * value (on every read: the /soap routes, srv.run, soap.read, OData), `mandatoryFields` rejects a request without it
+     * (400).
      */
     @Soap.operation        : 'GetStock'
     @Soap.rootResponse     : 'Stock'

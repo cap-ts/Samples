@@ -6,8 +6,8 @@
   "private": true,
   "dependencies": {
     "@cap-js/mcp": "1.5.0",
-    "@cap-ts/remote-service-adapter": "^1.0.0",
-    "@cap-ts/soap-adapter": "^1.0.0",
+    "@cap-ts/remote-service-adapter": "^1.0.1",
+    "@cap-ts/soap-adapter": "^1.0.1",
     "@sap-cloud-sdk/connectivity": "^4.7.0",
     "@sap-cloud-sdk/http-client": "^4.7.0",
     "@sap-cloud-sdk/resilience": "^4.7.0",
@@ -24,7 +24,8 @@
   "scripts": {
     "start": "cds-serve",
     "watch": "PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch",
-    "watch:trace": "DEBUG=remote-service LOG_TO_FILE=true PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch"
+    "watch:trace": "DEBUG=remote-service LOG_TO_FILE=true PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch",
+    "watch:limits": "PORT=5005 destinations='[{\"name\":\"RSA_SAMPLES_PARTNERS\",\"url\":\"http://localhost:6006\",\"username\":\"alice\",\"password\":\"alice\"}]' cds watch --profile limits"
   },
   "cds": {
     "requires": {
@@ -118,6 +119,8 @@
       },
       "remote": {
         "pagesInParallel": 3,
+        "paging": true,
+        "capClientLog": false,
         "budget": {
           "requests": 200,
           "rows": 100000,
@@ -128,7 +131,21 @@
         "[production]": {
           "maskBackendErrors": true
         },
+        "[limits]": {
+          "paging": false,
+          "capClientLog": true,
+          "maskBackendErrors": true,
+          "budget": {
+            "requests": 2
+          },
+          "aggregate": {
+            "maxRows": 3
+          }
+        },
         "search": {
+          "maxRows": 5000
+        },
+        "aggregate": {
           "maxRows": 5000
         },
         "semiJoin": {
@@ -149,8 +166,13 @@
         },
         "warmUp": {
           "enabled": true,
-          "await": 15
+          "await": 15,
+          "concurrency": 2,
+          "tenants": []
         }
+      },
+      "soap": {
+        "agentHints": true
       }
     },
     "log": {

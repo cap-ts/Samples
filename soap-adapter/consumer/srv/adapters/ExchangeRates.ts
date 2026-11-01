@@ -32,12 +32,14 @@ export default class ExchangeRates extends soap.Service {
         }));
 
         // One FromCurrency per call (the /soap routes fan `FromCurrency in (...)` out); the ToCurrency values as a list;
-        // the operation's input uses the backend's names From / To
+        // the operation's input uses the backend's names From / To. `__skipPagination: true` (stripped before the call):
+        // GetRates answers every rate of one currency at once, so its answer is never cut to a page of
+        // cds.query.soap.pageSize; $filter / $orderby still run in memory, the routes still page what they answer.
         this.request(Rates, (req: any) => {
             const where = req.query?.SELECT?.where;
             const [from] = valuesOf(where, 'FromCurrency');
             const to = valuesOf(where, 'ToCurrency');
-            return { From: from, ...(to.length && { To: to }) };
+            return { From: from, ...(to.length && { To: to }), __skipPagination: true };
         });
 
         await super.init();

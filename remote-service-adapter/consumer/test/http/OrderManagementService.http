@@ -105,6 +105,11 @@ Content-Type: application/json
 GET {{server}}/orderCard(ID='O100')
 Authorization: {{auth}}
 
+### The class API: supportsSkipPagination is true, so other RemoteApplicationService instances may send this service
+### the internal "all rows" hint of their association fetches
+GET {{server}}/adapterInfo()
+Authorization: {{auth}}
+
 ### DELETE: the row is read by key first (404 outside the WHERE), then deleted. Its items stay (no cascade).
 DELETE {{server}}/Orders('O100')
 Authorization: {{auth}}

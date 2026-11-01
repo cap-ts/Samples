@@ -25,6 +25,14 @@ service ShopService {
             Country      : String(60);
     }
 
+    /** The stock of one product: a request built with `soap.createRequest` and dispatched to ProductCatalog. */
+    function stockOf(ProductID : String(10)) returns {
+        ProductID : String(10);
+        Warehouse : String(20);
+        Quantity  : Integer;
+        Available : Integer;
+    };
+
     /** Converts an amount with the rate of the ExchangeRates service. */
     function convert(Amount : Decimal(15, 2), From : String(3), To : String(3)) returns Decimal(15, 2);
 

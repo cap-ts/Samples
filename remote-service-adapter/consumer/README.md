@@ -72,8 +72,10 @@ therefore declares the associations the projections use, each with its ON condit
 | `cds.requires.CustomerService` / `ProductService` / `SalesService` | `kind`, `model`; `[development]`: the producer URL with basic authentication; `[production]`: a BTP destination |
 | `cds.requires.PartnerDirectory` | `kind: "soap"`, the local `wsdl`, `credentials.destination` and `credentials.path`. The destination `RSA_SAMPLES_PARTNERS` is defined in the `watch` scripts through the Cloud SDK's `destinations` environment variable |
 | `cds.requires.auth` | Mocked users: `alice` (admin), `bob` (CompanyCode 1000), `kim` (CompanyCode 2000), `sam` (no CompanyCode); password = user name |
-| `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `search.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...); `warmUp` runs the `@remote.warmUp` reads also in development (`enabled: true`) and makes the server wait for them (`await`: at most 15 seconds) |
+| `cds.query.remote` | The adapter's runtime settings: `pagesInParallel`, `paging`, `capClientLog`, `search.maxRows`, `aggregate.maxRows`, `semiJoin`, `join.maxRows` (rows one source of a JOIN view may contribute; more is a 502), and the caches of aggregates and semi-join key sets (`cache.aggregates`, `cache.semiJoins`, `ttl`, `staleWhileRevalidate`, ...); `warmUp` runs the `@remote.warmUp` reads also in development (`enabled: true`) and makes the server wait for them (`await`: at most 15 seconds), two at a time (`concurrency`), for the application without tenant (`tenants: []`) |
 | `cds.query.remote.budget` / `audit` / `agentHints` / `[production].maskBackendErrors` | The settings for agents and other clients: one budget per request, an audit line per request, hints in the docs of the services and entities, generic backend error texts in production ([AI-AGENTS.md](AI-AGENTS.md) "Guardrails for agents") |
+| `cds.query.remote.[limits]` | Profile `limits` (`npm run watch:limits`): `budget.requests` 2, `aggregate.maxRows` 3, `maskBackendErrors`, `paging: false`, `capClientLog`, small enough for [`test/http/Limits.http`](test/http/Limits.http) to trip each one |
+| `cds.query.soap.agentHints` | `@cap-ts/soap-adapter`'s hints (`SOAP hints: ...`) on the SOAP entities with `@Soap.filterRestriction`; the projections on them show them too |
 | `cds.mcp` | `@cap-js/mcp`: `prefix` (tool names `CatalogService-query`, ...), `autowire` (the mocked user with which `cds watch` registers the endpoints with local agents) |
 | `cds.query.limit` | Page size when every row of a source is read |
 | `cds.log.levels.remote: "info"` | Logs every backend request: `[remote] - GET http://localhost:7007/odata/v4/sales/Orders?$select=...` |
@@ -95,6 +97,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `setCustomerStatus` | producer-customers | unbound action forwarded to another service (`@remote.operation: 'CustomerService.setStatus'`) |
 | `Regions` | the consumer's database | a database source |
 | `Products` | producer-products (V2) | `@remote.filter.local` on the entity (`sap:filterable="false"` fields) and on an element, a `Date` over a date-time source, `@remote.search.maxRows`, `$count` from V2 |
+| `OrderSearch` | producer-sales + producer-customers | `@remote.search.maxRows: 2`: a `$search` with more matches is a 502 before the path column `CustomerName` is read |
 | `Categories` | producer-products (V2) | `@remote.paging: false` |
 | `Orders` | producer-sales | paths into another system (`_Customer.Name`, `_Customer._Group.Region`), associations across systems, an association with a constant in its ON condition (`_ActiveItems`) |
 | `Items` | producer-sales | path into producer-products (`_Product.Name`) |
@@ -103,7 +106,8 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `PartnerCustomers` | producer-partners + producer-customers | JOIN view of a SOAP and an OData source (`@cds.persistence.skip`, `@cds.persistence.mock: false`: the SOAP entity has a table) |
 | `GroupRegions` | producer-customers + the database | JOIN view of a remote source and the consumer's own table (`@cds.persistence.skip`, `@cds.persistence.mock: false`) |
 | `ItemStatistics` | producer-sales | GROUP BY with `count`, `sum`, `max`; page size from `@cds.query.limit` |
-| `Partners` | producer-partners (SOAP) | a SOAP source; an association from SOAP into OData (`$expand` with `$select`, filters through it); `$search` matched here |
+| `Partners` | producer-partners (SOAP) | a SOAP source; an association from SOAP into OData (`_Customer : redirected to Customers`; `$expand` with `$select`, filters through it); `$search` matched here |
+| `PartnerChannels` | producer-partners (SOAP) | an operation with a mandatory filter (`@Soap.filterRestriction`: one `PartnerID` per call); its hints in `$metadata` and MCP `describe`; 400 without it, one call per partner for a list |
 
 ### OverviewService (`/odata/v4/overview`): a second layer
 
@@ -166,10 +170,15 @@ Two rules worth knowing:
 ## The SOAP service
 
 [`srv/external/PartnerDirectory.cds`](srv/external/PartnerDirectory.cds) models the operation `GetPartners` as the
-entity `Partners` with `@Soap.operation`, `@Soap.binding.rootResponse` and `@Soap.path` (the nested `Contact.Email`).
-The adapter class [`srv/external/lib/PartnerDirectory.js`](srv/external/lib/PartnerDirectory.js) (found by the file
-convention `lib/<Service>.js`) turns the request's key and its `PartnerID` / `Country` terms into the operation's
-input; everything else is evaluated in memory. The SOAP service is also served on its own at
+entity `Partners` with `@Soap.operation`, `@Soap.binding.rootResponse` and `@Soap.path` (the nested `Contact.Email`),
+and `GetChannels` as `Channels` with `@Soap.filterRestriction` (`mandatoryFields: ['PartnerID']`,
+`multipleSelection: false`: one partner per call). The adapter class
+[`srv/external/lib/PartnerDirectory.js`](srv/external/lib/PartnerDirectory.js) (found by the file convention
+`lib/<Service>.js`) turns the request's key and its `PartnerID` / `Country` terms into the operation's input;
+everything else is evaluated in memory. The restriction of `Channels` holds on every read, the
+`CatalogService.PartnerChannels` projection included: without `PartnerID` the remote-service-adapter answers 400
+`MISSING_MANDATORY_FILTER` before any call, and the soap-adapter turns a list of partners into one call per partner,
+so the hook gets one `PartnerID`. The SOAP service is also served on its own at
 `/soap/partnerdirectory/Partners` by `@cap-ts/soap-adapter`.
 
 The model imports the `@Soap` vocabulary (`using from '@cap-ts/soap-adapter'`), so `cds compile` checks the

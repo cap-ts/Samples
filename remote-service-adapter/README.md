@@ -55,7 +55,7 @@ Each app has its own README: [producer-customers](producer-customers/README.md),
    producer-customers     producer-products      producer-sales         producer-partners
    (9009)                 (8008)                 (7007)                 (6006)
    Customers              Products               Orders, Items          PartnerDirectory
-   CustomerGroups         Categories             Projects, Packages       GetPartners
+   CustomerGroups         Categories             Projects, Packages       GetPartners, GetChannels
    Contacts                                      Bookings, Entries
 ```
 
@@ -64,7 +64,7 @@ Each app has its own README: [producer-customers](producer-customers/README.md),
 | `producer-customers` | OData V4 (CAP) | customers with a structured address, customer groups, contacts; bound and unbound operations | 9009 |
 | `producer-products` | OData V2 (CAP + `@cap-js-community/odata-v2-adapter`) | products (one `sap:filterable="false"` field, a date-time), categories | 8008 |
 | `producer-sales` | OData V4 (CAP), writable | orders, items, projects, packages, bookings, and a non-CRUD ledger API; bound and unbound operations | 7007 |
-| `producer-partners` | SOAP 1.1 (plain Node.js, `soap`) | partners with a nested contact, one operation `GetPartners` | 6006 |
+| `producer-partners` | SOAP 1.1 (plain Node.js, `soap`) | partners with a nested contact: `GetPartners`, and `GetChannels` (one partner per call) | 6006 |
 | `consumer` | | five services, all served by `RemoteApplicationService` | 5005 |
 
 The data is linked across systems: an order (producer-sales) has a customer (producer-customers) and items whose
@@ -134,14 +134,21 @@ what it shows and what to expect; run them top to bottom.
 
 | File | Service | Covers |
 | --- | --- | --- |
-| [`CatalogService.http`](consumer/test/http/CatalogService.http) | `/odata/v4/catalog` | mapping, push-down, paths, `$expand`, `$search`, navigation, operations, OData V2, SOAP, static data, GROUP BY |
+| [`CatalogService.http`](consumer/test/http/CatalogService.http) | `/odata/v4/catalog` | mapping, push-down, paths, `$expand`, `$search`, navigation, operations, OData V2, SOAP (also an operation with a mandatory filter), static data, GROUP BY, `$search` row cap, backend errors |
 | [`OverviewService.http`](consumer/test/http/OverviewService.http) | `/odata/v4/overview` | layered services, `exists` flags, the projection's WHERE with `$user` / `$now`, HAVING, DISTINCT, the aggregate cache |
 | [`ReferenceDataService.http`](consumer/test/http/ReferenceDataService.http) | `/odata/v4/reference-data` | the cache of reads by key (`X-Cache`) |
 | [`RestrictedService.http`](consumer/test/http/RestrictedService.http) | `/odata/v4/restricted` | `@requires`, `@restrict` with a user attribute, restricted `$expand` |
-| [`OrderManagementService.http`](consumer/test/http/OrderManagementService.http) | `/odata/v4/order-management` | writes, write rules, deep writes, a non-CRUD API, actions, functions, `readSource` / `writeSource` |
+| [`OrderManagementService.http`](consumer/test/http/OrderManagementService.http) | `/odata/v4/order-management` | writes, write rules, deep writes, a non-CRUD API, actions, functions, `readSource` / `writeSource`, `supportsSkipPagination` |
+| [`MCP.http`](consumer/test/http/MCP.http) | `/mcp/catalog`, `/mcp/restricted` | the services for AI agents (see [consumer/AI-AGENTS.md](consumer/AI-AGENTS.md)) |
+| [`Limits.http`](consumer/test/http/Limits.http) | `/odata/v4/catalog` | the guardrails made small enough to trip; start the consumer with `npm run watch:limits` (profile `limits`, see below) |
 
 Users (password = user name): `alice` (admin), `bob` (CompanyCode 1000), `kim` (CompanyCode 2000), `sam` (no
 CompanyCode). The writes change producer-sales's in-memory data; restart producer-sales to reset it.
+
+**Profile `limits`.** `npm run watch:limits` starts the consumer with `--profile limits`: the `"[limits]"` entry of
+`cds.query.remote` in `consumer/package.json` sets `budget.requests` 2, `aggregate.maxRows` 3, `maskBackendErrors`,
+`paging: false` and `capClientLog`, so [`Limits.http`](consumer/test/http/Limits.http) can show each of them. The other
+request files expect the normal start (`npm run watch`).
 
 ---
 
@@ -179,13 +186,15 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | Static data (`@response.data`) | `CatalogService.OrderStatus` | `CatalogService.http` |
 | GROUP BY with aggregates, `@cds.query.limit` | `CatalogService.ItemStatistics`, `OverviewService.SalesByStatus` | both |
 | HAVING | `OverviewService.BusyCustomers` | `OverviewService.http` |
-| GROUP BY / aggregates of the request (`$apply`: `groupby`, `aggregate`, `filter`, also by a path column); `cds.query.remote.aggregate.maxRows` | `CatalogService.Orders` | `CatalogService.http` |
+| GROUP BY / aggregates of the request (`$apply`: `groupby`, `aggregate`, `filter`, also by a path column) | `CatalogService.Orders` | `CatalogService.http` |
+| `cds.query.remote.aggregate.maxRows` (5000; profile `limits`: 3, more source rows is a 502) | `consumer/package.json` | `Limits.http` |
 | DISTINCT | `OverviewService.Currencies` | `OverviewService.http` |
 | Layered services, renames per layer | `OverviewService` on `CatalogService` | `OverviewService.http` |
 | `exists` flags (constant ON condition, infix filter, two hops), filter on a flag | `OverviewService.Customers`, `.OrderFlags` | `OverviewService.http` |
 | The projection's own WHERE: pushed, in memory, `$now`, to-one path; 404 outside | `OverviewService.OpenOrders` | `OverviewService.http` |
 | `$user` in the WHERE | `OverviewService.MyOrders` | `OverviewService.http` |
 | Database source | `CatalogService.Regions` | `CatalogService.http` |
+| `redirected to` an entity of the service | `CatalogService.Partners._Customer` | `CatalogService.http` |
 
 ### Backends
 
@@ -195,10 +204,11 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | OData V2: `$inlinecount`, count as text | `CatalogService.Products` | `CatalogService.http` |
 | `@remote.filter.local` (entity: `sap:filterable="false"` fields; element) | `CatalogService.Products` | `CatalogService.http` |
 | `Date` over a date-time source (`ReleasedAt as ReleaseDate : Date`) | `CatalogService.Products` | `CatalogService.http` |
-| `@remote.paging: false` | `CatalogService.Categories` | `CatalogService.http` |
-| `@remote.search.maxRows` | `CatalogService.Products` | |
+| `@remote.paging: false`; `cds.query.remote.paging` (`true`; profile `limits`: `false`, one request for every row) | `CatalogService.Categories`, `consumer/package.json` | `CatalogService.http`, `Limits.http` |
+| `@remote.search.maxRows` (more matches than allowed: 502 naming `$filter`); `cds.query.remote.search.maxRows` | `CatalogService.OrderSearch`, `.Products`, `consumer/package.json` | `CatalogService.http` |
 | SOAP through `@cap-ts/soap-adapter`: model, adapter class, key and filter push to the operation | `CatalogService.Partners`, `external/PartnerDirectory.*` | `CatalogService.http` |
 | From SOAP into OData: `$expand` with `$select` of renamed columns, filters through the association, `$search` on the SOAP entity | `CatalogService.Partners` | `CatalogService.http` |
+| A SOAP operation with a mandatory filter (`@Soap.filterRestriction`: one PartnerID per call): 400 before any call without it, one call per partner for a list; its hints from `cds.query.remote.agentHints` and `cds.query.soap.agentHints` | `CatalogService.PartnerChannels`, `external/PartnerDirectory.*` | `CatalogService.http`, `MCP.http` |
 | Development credentials vs. production destinations | `consumer/package.json` | |
 
 ### Agents and other clients
@@ -207,9 +217,10 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | --- | --- | --- |
 | The same services for AI agents over MCP (`@cap-js/mcp`): `describe`, `query` (CQL), `call`; one question over three systems, totals, the agent as the user (`@restrict`) | `consumer/srv/mcp.cds`, [consumer/AI-AGENTS.md](consumer/AI-AGENTS.md) | `MCP.http` |
 | Hints for agents in the docs (`cds.query.remote.agentHints`): of the service (columns, limit, totals, which entity comes from which system, the budget) and of entities and elements (key reads, row caps, fields filtered in memory, associations to another system); OData `Core.Description` / MCP `describe` | every `@remote` service | `CatalogService.http` (`$metadata`), `MCP.http` (`describe`) |
-| One budget per incoming request over every layer (`cds.query.remote.budget`: requests, rows, seconds; 502 `REMOTE_BUDGET_EXCEEDED`) | `consumer/package.json` | `CatalogService.http` |
+| One budget per incoming request over every layer (`cds.query.remote.budget`: requests, rows, seconds; 502 `REMOTE_BUDGET_EXCEEDED`) | `consumer/package.json` | `CatalogService.http`, `Limits.http` (502) |
 | Audit line per request (`cds.query.remote.audit`: user, protocol, status, backend requests and rows; no values) | `consumer/package.json` | every request (consumer log) |
-| Backend error texts kept in the log, a generic message with a reference to the client (`maskBackendErrors`, profile `production`) | `consumer/package.json` | |
+| Backend error texts kept in the log, a generic message with a reference to the client (`maskBackendErrors`, profiles `production` and `limits`) | `consumer/package.json` | `CatalogService.http` (unmasked), `Limits.http` (masked) |
+| CAP's own remote-client log lines and warnings (`cds.query.remote.capClientLog`, profile `limits`) | `consumer/package.json` | `Limits.http` (consumer log) |
 
 ### Caching
 
@@ -219,7 +230,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `X-Cache: MISS`, `HIT`, `PARTIAL` | `ReferenceDataService.CustomerNames` | `ReferenceDataService.http` |
 | Aggregates (`cds.query.remote.cache.aggregates`) | `OverviewService.SalesByStatus` | `OverviewService.http` |
 | Semi-join key sets, stale-while-revalidate, time to live | `cds.query.remote.cache.*` in `package.json` | |
-| Warm-up at start and before the time to live ends: `@remote.warmUp` with a `where` per record, `cds.query.remote.warmUp` (`enabled`, `await`) | `OverviewService.SalesByStatus`, `OverviewService.Customers` | `OverviewService.http` |
+| Warm-up at start and before the time to live ends: `@remote.warmUp` with a `where` per record, `cds.query.remote.warmUp` (`enabled`, `await`, `concurrency`, `tenants`) | `OverviewService.SalesByStatus`, `OverviewService.Customers` | `OverviewService.http` |
 | Search copy filled by the warm-up (`search`, `every`) | `OverviewService.ProductFinder`, `.AvailableProducts` | `OverviewService.http` |
 
 ### Security
@@ -246,6 +257,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | Writes through a second layer over a non-CRUD backend (settings copied by CDS, applied once below) | `OverviewService.Entries` | `OverviewService.http` |
 | `readSource` / `writeSource` | `order-management-service.js` (`Entries.release`) | `OrderManagementService.http` |
 | A handler's query with path columns, aliases, expressions | `order-management-service.js` (`orderCard`) | `OrderManagementService.http` |
+| `supportsSkipPagination` of the class | `order-management-service.js` (`adapterInfo`) | `OrderManagementService.http` |
 | Bound action / function forwarded by name; `@remote.operation` with another name | `CatalogService.Customers`, `OrderManagementService.Orders` | both |
 | Unbound operation of another service (`@remote.operation: '<Service>.<name>'`) | `CatalogService.setCustomerStatus`, `OrderManagementService.setOrderStatus` | both |
 

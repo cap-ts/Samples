@@ -5,6 +5,8 @@
  * implementation. There is no handler file. Every entity is served from its source: CustomerService (OData V4,
  * producer-customers), ProductService (OData V2, producer-products), SalesService (OData V4, producer-sales), PartnerDirectory (SOAP,
  * producer-partners) or the consumer's database.
+ *
+ * `_Customer : redirected to Customers` (Partners) points an association of the source at an entity of this service.
  */
 using { CustomerService as customers } from './external/CustomerService';
 using { ProductService as products } from './external/ProductService';
@@ -249,6 +251,35 @@ service CatalogService {
             Customer as CustomerID,
             Email,
             Phone,
-            _Customer
+            _Customer : redirected to Customers   // explicit: CAP would pick Customers here by itself
+    };
+
+    /**
+     * A SOAP operation that takes exactly one PartnerID per call (`@Soap.filterRestriction` in
+     * external/PartnerDirectory.cds). `cds.query.remote.agentHints` names the mandatory filter in this entity's docs
+     * (MCP describe, `$metadata`), and `cds.query.soap.agentHints` adds the SOAP hints of the source entity; a read
+     * without it is a 400 before any call, a list of partners is one call per partner.
+     */
+    @readonly
+    entity PartnerChannels as projection on partners.Channels {
+        key PartnerID,
+        key Channel,
+            Address
+    };
+
+    // ---------------------------------------------------------------- limits for expensive reads
+
+    /**
+     * `@remote.search.maxRows`: a `$search` here reads every matching order and then the path column CustomerName of
+     * each (producer-customers). More than two matches is a 502 naming `$filter`, so a client narrows the request
+     * instead of letting it read across systems. `cds.query.remote.search.maxRows` sets the limit for every entity.
+     */
+    @readonly
+    @remote.search.maxRows: 2
+    @cds.search: { Title, CustomerName }
+    entity OrderSearch     as projection on sales.Orders {
+        key ID,
+            OrderName      as Title,
+            _Customer.Name as CustomerName
     };
 }

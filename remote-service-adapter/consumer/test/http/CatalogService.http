@@ -291,3 +291,43 @@ Authorization: {{auth}}
 ### $search on a SOAP source: every partner is read and matched here, case-insensitively
 GET {{server}}/Partners?$search=fuji&$select=PartnerID,Name
 Authorization: {{auth}}
+
+### PartnerChannels: GetChannels takes one PartnerID per call (@Soap.filterRestriction). The $metadata above and an
+### MCP describe name the mandatory filter (cds.query.remote.agentHints): "The SOAP source needs a filter on PartnerID"
+GET {{server}}/PartnerChannels?$filter=PartnerID eq 'BP01'
+Authorization: {{auth}}
+
+### Without PartnerID: 400 MISSING_MANDATORY_FILTER, from the remote-service-adapter before any call (it reads the
+### source's @Soap.filterRestriction; the producer-partners terminal shows no GetChannels)
+GET {{server}}/PartnerChannels
+Authorization: {{auth}}
+
+### A list of partners: one GetChannels call per partner (the soap-adapter's fan-out of multipleSelection: false),
+### merged and sorted
+GET {{server}}/PartnerChannels?$filter=PartnerID in ('BP01','BP02')&$orderby=PartnerID,Channel
+Authorization: {{auth}}
+
+### A list of partners beside an or can not be split into calls: 400 UNSUPPORTED_MULTI_SELECTION_FILTER (never read
+### again without the filter)
+GET {{server}}/PartnerChannels?$filter=PartnerID in ('BP01','BP02') or Channel eq 'Phone'
+Authorization: {{auth}}
+
+
+### -------------------------------------------------------------- Limits and errors
+
+### @remote.search.maxRows: 2 on OrderSearch: one matching order, its CustomerName read from producer-customers
+GET {{server}}/OrderSearch?$search=flagship
+Authorization: {{auth}}
+
+### More than two matches: 502 naming $filter, nothing is read across systems
+GET {{server}}/OrderSearch?$search=o
+Authorization: {{auth}}
+
+### A backend error passes through with its text: 502 REMOTE_SERVICE_ERROR "... Status must be 'A' or 'B'" (the
+### 400 of producer-customers). With cds.query.remote.maskBackendErrors (profiles production and limits, see
+### test/http/Limits.http) the client gets a generic text with a reference; the log keeps the backend's text under it.
+POST {{server}}/setCustomerStatus
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "C002", "Status": "Z" }

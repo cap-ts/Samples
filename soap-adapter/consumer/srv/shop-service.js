@@ -18,20 +18,30 @@ module.exports = class ShopService extends cds.ApplicationService {
         };
 
         this.on('READ', 'Offers', async (req) => {
-            // srv.run on the SOAP service: the same pipeline as its /soap routes (hooks, call, mapping, in-memory filter)
-            const products = await catalog.run(SELECT.from('ProductCatalog.Products').where({ Discontinued: false }));
+            // srv.run on the SOAP service: the same pipeline as its /soap routes (hooks, call, mapping, in-memory filter).
+            // Discontinued is filtered in memory, and that answer is cut to one page (cds.query.soap.pageSize, 4 here):
+            // SELECT.__skipPagination asks for every matching product, as the offers are paged below.
+            const query = SELECT.from('ProductCatalog.Products').where({ Discontinued: false });
+            query.SELECT.__skipPagination = true;
+            const products = await catalog.run(query);
             const usd = await rateOf(req, 'EUR', 'USD');
             const names = Object.fromEntries((await countries.run(SELECT.from('CountryCodes.Countries'))).map((c) => [c.Code, c.Name]));
-            // GetStock takes one product per call: one soap.read per product (the fan-out of the routes is route-only)
-            const offers = await Promise.all(products.map(async (p) => {
-                const [stock] = await soap.read(catalog, 'Stock', req, SELECT.from('Stock').where({ ProductID: p.ProductID }));
+            // GetStock takes one product per call (multipleSelection: false): one soap.read with the list of products is
+            // one SOAP call per product, merged (cds.query.soap.multiSelectionConcurrency at a time); __skipPagination: every
+            // merged row, not a page of pageSize
+            const stockQuery = SELECT.from('Stock').where({ ProductID: { in: products.map((p) => p.ProductID) } });
+            stockQuery.SELECT.__skipPagination = true;
+            const stocks = await soap.read(catalog, 'Stock', req, stockQuery);
+            const stockOf = Object.fromEntries(stocks.map((s) => [s.ProductID, s]));
+            const offers = products.map((p) => {
+                const stock = stockOf[p.ProductID];
                 return {
                     ProductID: p.ProductID, Name: p.Name, Category: p.Category, Price: p.Price, Currency: p.Currency,
                     PriceUSD: Math.round(Number(p.Price) * usd * 100) / 100,
                     Available: stock?.Available ?? null, Warehouse: stock?.Warehouse ?? null,
                     SupplierName: p.SupplierName, Country: names[p.SupplierCountry] ?? p.SupplierCountry,
                 };
-            }));
+            });
             // $filter (Category eq '...'), $orderby and paging of Offers, applied here
             const { where, orderBy, limit, count } = req.query.SELECT;
             const category = where?.[0]?.ref?.[0] === 'Category' && where[1] === '=' ? where[2].val : undefined;
@@ -50,6 +60,22 @@ module.exports = class ShopService extends cds.ApplicationService {
         this.on('convert', async (req) => {
             const { Amount, From, To } = req.data;
             return Math.round(Number(Amount) * (await rateOf(req, From, To)) * 100) / 100;
+        });
+
+        // soap.createRequest: a real cds.Request of its own (fresh context id, the caller's user, sensitive headers of
+        // the inbound request not copied), dispatched to the SOAP service directly. soap.read does the same plus the key
+        // de-duplication; createRequest is for a dispatch you control yourself.
+        this.on('stockOf', async (req) => {
+            const { Stock } = catalog.entities;
+            const request = soap.createRequest({
+                event: 'READ',
+                query: SELECT.from(Stock).where({ ProductID: req.data.ProductID }),
+                target: Stock,
+                user: req.user,
+                headers: soap.Service.stripSensitiveHeaders(req.headers ?? {}),
+            });
+            const [row] = await catalog.dispatch(request);
+            return row ?? req.reject(404, `No stock for ${req.data.ProductID}`);
         });
 
         this.on('soapInfo', (req) => {

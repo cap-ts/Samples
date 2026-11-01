@@ -4,13 +4,23 @@
 @auth = Basic alice:alice
 
 
-### Products (srv.run on ProductCatalog), stock (one soap.read per product), the EUR->USD rate (soap.read on
-### ExchangeRates) and country names (the CountryCodes mock), combined
+### Products (srv.run on ProductCatalog, with SELECT.__skipPagination: all 8 products that are not discontinued, not
+### a page of 4), stock (one soap.read with the product list: one GetStock
+### call per product), the EUR->USD rate (soap.read on ExchangeRates) and country names
+### (the CountryCodes mock), combined
 GET {{server}}/Offers?$filter=Category eq 'Furniture'&$orderby=PriceUSD desc&$count=true
 Authorization: {{auth}}
 
 ###
 GET {{server}}/Offers?$top=3
+Authorization: {{auth}}
+
+### soap.createRequest: a request of its own, dispatched to ProductCatalog's Stock
+GET {{server}}/stockOf(ProductID='P004')
+Authorization: {{auth}}
+
+### No stock: 404 from the handler
+GET {{server}}/stockOf(ProductID='P999')
 Authorization: {{auth}}
 
 ### soap.read on ExchangeRates

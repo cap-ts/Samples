@@ -21,4 +21,24 @@ service PartnerDirectory {
             @Soap.path: 'Contact.Phone'
             Phone     : String(20);
     }
+
+    /**
+     * GetChannels takes exactly one PartnerID per call. `@Soap.filterRestriction` declares it: with
+     * `cds.query.remote.agentHints` (package.json) the docs of CatalogService.PartnerChannels tell agents and other
+     * clients that every read needs a filter on PartnerID, and `cds.query.soap.agentHints` adds the same to this entity.
+     */
+    @Soap.operation        : 'GetChannels'
+    @Soap.binding          : {
+        rootRequest  : 'GetChannelsRequest',
+        rootResponse : 'Channel'
+    }
+    @Soap.filterRestriction: {
+        mandatoryFields  : ['PartnerID'],
+        multipleSelection: false
+    }
+    entity Channels {
+        key PartnerID : String(10);
+        key Channel   : String(10);
+            Address   : String(100);
+    }
 }

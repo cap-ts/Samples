@@ -1,0 +1,45 @@
+# Limits: the guardrails of cds.query.remote, made small enough to trip. Start the consumer with the profile limits:
+#
+#   npm run watch:limits
+#
+# package.json "[limits]" sets budget.requests 2, aggregate.maxRows 3, maskBackendErrors, paging false and
+# capClientLog. Every other request file expects the normal start (npm run watch).
+
+@server = http://localhost:5005/odata/v4/catalog
+@auth = Basic alice:alice
+
+
+### Within the budget: one backend request (Customers of producer-customers)
+GET {{server}}/Customers?$select=ID,CustomerName&$top=2
+Authorization: {{auth}}
+
+### cds.query.remote.budget.requests 2: orders, then their customers and their items are three backend requests,
+### so the request is stopped with 502 REMOTE_BUDGET_EXCEEDED naming the setting (the audit line shows it too)
+GET {{server}}/Orders?$select=ID,CustomerName&$expand=_Items($select=ProductName)&$top=3
+Authorization: {{auth}}
+
+### cds.query.remote.aggregate.maxRows 3: the totals of a request read the orders first; more than three is a 502
+### that asks for a narrower $filter
+GET {{server}}/Orders?$apply=groupby((Status),aggregate(Amount with sum as Total))
+Authorization: {{auth}}
+
+### A filter that leaves at most three orders is grouped as usual
+GET {{server}}/Orders?$apply=filter(Currency eq 'USD')/groupby((Status),aggregate(Amount with sum as Total))
+Authorization: {{auth}}
+
+### cds.query.remote.maskBackendErrors: producer-customers rejects the status with its own text; the client gets 502
+### REMOTE_SERVICE_ERROR "The backend system could not process the request (reference <id>)", the log has the text
+POST {{server}}/setCustomerStatus
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "ID": "C002", "Status": "Z" }
+
+### cds.query.remote.paging false: IsActive is filtered in memory (@remote.pushdown: false), so every customer is read;
+### here in one request without $top / $skip (the normal start pages it by @cds.query.limit.max: compare the [remote] lines)
+GET {{server}}/Customers?$filter=IsActive eq true&$select=ID,CustomerName&$count=true
+Authorization: {{auth}}
+
+### cds.query.remote.capClientLog: the 404 of a read by key also shows CAP's own warning of its remote client in the log
+GET {{server}}/Orders('O999')
+Authorization: {{auth}}

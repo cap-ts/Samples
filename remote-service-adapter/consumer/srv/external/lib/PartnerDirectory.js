@@ -14,26 +14,34 @@ const valuesOf = (where, element) => {
     return values;
 };
 
+/** The PartnerID values of a read: its key (`Partners('BP01')` carries it in from.ref[0].where) and its WHERE. */
+const partnerIDs = (req) => {
+    const { where = [], from } = req.query?.SELECT ?? {};
+    return [...valuesOf(from?.ref?.[0]?.where ?? [], 'PartnerID'), ...valuesOf(where, 'PartnerID')];
+};
+
 /**
  * Adapter class of the SOAP service (found by the file convention: lib/<Service>.js next to the .cds file).
- * The operation takes PartnerID (any number) and Country; everything else of the request is evaluated in memory
- * by the soap-adapter, and again by @cap-ts/remote-service-adapter for the projections on top.
+ * GetPartners takes PartnerID (any number) and Country; everything else of the request is evaluated in memory by the
+ * soap-adapter, and again by @cap-ts/remote-service-adapter for the projections on top.
  */
 class PartnerDirectory extends soap.Service {
     async init() {
-        const { Partners } = this.entities;
+        const { Partners, Channels } = this.entities;
 
         this.request(Partners, (req) => {
-            const { where = [], from } = req.query?.SELECT ?? {};
-            // A read by key (Partners('BP01')) carries its key in from.ref[0].where.
-            const keyWhere = from?.ref?.[0]?.where ?? [];
             const payload = {};
-            const ids = [...valuesOf(keyWhere, 'PartnerID'), ...valuesOf(where, 'PartnerID')];
-            const [country] = valuesOf(where, 'Country');
+            const ids = partnerIDs(req);
+            const [country] = valuesOf(req.query?.SELECT?.where ?? [], 'Country');
             if (ids.length) payload.PartnerID = ids;
             if (country) payload.Country = country;
             return payload;
         });
+
+        // GetChannels takes exactly one PartnerID (@Soap.filterRestriction). The soap-adapter enforces it on every read
+        // (the /soap routes, the CatalogService.PartnerChannels projection in this process): without PartnerID a 400
+        // before this hook, a list of partners one call per partner. So the hook gets one PartnerID.
+        this.request(Channels, (req) => ({ PartnerID: partnerIDs(req)[0] }));
 
         await super.init();
     }

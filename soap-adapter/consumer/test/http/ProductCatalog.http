@@ -38,8 +38,45 @@ Authorization: {{auth}}
 GET {{server}}/Products?$filter=startswith(tolower(Name),'office') or contains(Name,'Lamp') or Category in ('Furniture')&$select=ProductID,Name
 Authorization: {{auth}}
 
-### A function on the left of a comparison is not supported by the route's $filter parser: 400 (never ignored)
-GET {{server}}/Products?$filter=length(Name) gt 18
+### endswith, a null literal and a negative number, evaluated by the runtime
+GET {{server}}/Products?$filter=endswith(Name,'Desk') or (SupplierName ne null and Price lt -1)&$select=ProductID,Name
+Authorization: {{auth}}
+
+### not before a parenthesised condition and before a function; and binds tighter than or
+GET {{server}}/Products?$filter=not (Category eq 'Electronics') and not startswith(Name,'Office') or ProductID eq 'P001'&$select=ProductID,Name,Category
+Authorization: {{auth}}
+
+### concat and substring (zero-based), evaluated by the runtime: the products of suppliers in AT whose name starts "Sta"
+GET {{server}}/Products?$filter=concat(concat(SupplierCountry,'-'),Category) eq 'AT-Furniture' and substring(Name,0,3) eq 'Sta'&$select=ProductID,Name
+Authorization: {{auth}}
+
+### A function on the left of a comparison (length, tolower)
+GET {{server}}/Products?$filter=length(Name) gt 18 or tolower(Category) eq 'office supplies'&$select=ProductID,Name
+Authorization: {{auth}}
+
+### A doubled quote stays one quote of the value: no product is named It's
+GET {{server}}/Products?$filter=Name eq 'It''s'&$count=true
+Authorization: {{auth}}
+
+### multipleSelection: true (@Soap.filterRestriction): ProductID in (...) stays one FindProducts call, the request()
+### hook passes the list (see the SOAP log: "ProductID":["P001","P004"])
+GET {{server}}/Products?$filter=ProductID in ('P001','P004')&$select=ProductID,Name
+Authorization: {{auth}}
+
+### $skip with $top: applied by the backend (MaxHits, Skip); $search is accepted and ignored (every product counts)
+GET {{server}}/Products?$skip=6&$top=2&$select=ProductID
+Authorization: {{auth}}
+
+###
+GET {{server}}/Products?$search=desk&$select=ProductID&$count=true
+Authorization: {{auth}}
+
+### The short routes: the same entity without the /soap prefix (/<path>/<Entity>, also by key)
+GET http://localhost:4004/catalog/Products/P004
+Authorization: {{auth}}
+
+### A literal on the left of a comparison: 400 (the parser fails closed, nothing is ignored)
+GET {{server}}/Products?$filter='Standing Desk' eq Name
 Authorization: {{auth}}
 
 ### Read by key (the key value is compared with the first key element)
@@ -81,8 +118,26 @@ Authorization: {{auth}}
 
 ### -------------------------------------------------------------- The same service as CAP serves it
 
+### cds.query.soap.agentHints: the $metadata carries "SOAP hints: Every read needs a filter on ProductID ..." on
+### Stock and on its element ProductID (Core.Description); an MCP describe of a projection on it shows the same
+GET http://localhost:4004/odata/v4/catalog/$metadata
+Authorization: {{auth}}
+
 ### The SOAP service is also an OData V4 service of the application: reads run the same pipeline
 GET http://localhost:4004/odata/v4/catalog/Products?$filter=Category eq 'Furniture'&$select=ProductID,Name
+Authorization: {{auth}}
+
+### The filter restriction holds on every way in, not only on the /soap routes: no ProductID, 400
+### MISSING_MANDATORY_FILTER before any SOAP call
+GET http://localhost:4004/odata/v4/catalog/Stock
+Authorization: {{auth}}
+
+### ... and a key list is one GetStock call per value (see the SOAP log), merged and sorted
+GET http://localhost:4004/odata/v4/catalog/Stock?$filter=ProductID in ('P002','P005')&$orderby=ProductID desc
+Authorization: {{auth}}
+
+### Read by key: the key is the mandatory filter
+GET http://localhost:4004/odata/v4/catalog/Stock('P004')
 Authorization: {{auth}}
 
 ### Read only: writes are 405
