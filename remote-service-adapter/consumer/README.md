@@ -100,6 +100,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `Regions` | the consumer's database | a database source |
 | `Products` | producer-products (V2) | `@remote.filter.local` on the entity (`sap:filterable="false"` fields) and on an element, a `Date` over a date-time source, `@remote.search.maxRows`, `$count` from V2 |
 | `OrderSearch` | producer-sales + producer-customers | `@remote.search.maxRows: 2`: a `$search` with more matches is a 502 before the path column `CustomerName` is read |
+| `OrderPages` | producer-sales | `@cds.query.limit: { default: 4, max: 4 }`: at most 4 orders per read, also to the layer above (`OverviewService.OrderTally`) |
 | `Categories` | producer-products (V2) | `@remote.paging: false` |
 | `Orders` | producer-sales | paths into another system (`_Customer.Name`, `_Customer._Group.Region`), associations across systems, an association with a constant in its ON condition (`_ActiveItems`) |
 | `Items` | producer-sales | path into producer-products (`_Product.Name`) |
@@ -129,6 +130,7 @@ one correlation id per request, in `logs/remote-service-latest.log`.
 | `SalesByStatus` | GROUP BY on two columns, answered from the aggregate cache (`X-Cache: HIT`); `@remote.warmUp` fills the unfiltered and the `Status = 'O'` entry at start; a third record (`Status = 'C'`) is switched off with `enabled: false` |
 | `OrderMix` | GROUP BY written as `select from ... distinct { ... } group by`: every group with its aggregates, like the `projection on` form |
 | `Currencies` | DISTINCT |
+| `OrderTally` | A query's own GROUP BY on a layer over `CatalogService.OrderPages` (at most 4 rows per read): every order counted, read from the layer below in pages |
 | `Entries` | writes through a second layer over a non-CRUD backend: the `@remote.write.*` settings CDS copied from `OrderManagementService.Entries` are applied once, by the layer below (one POST with `Op` per write) |
 
 ### ReferenceDataService (`/odata/v4/reference-data`): caching

@@ -91,6 +91,11 @@ Authorization: {{alice}}
 GET {{server}}/Currencies
 Authorization: {{alice}}
 
+### A query's own GROUP BY on a layer over CatalogService.OrderPages, which answers at most 4 rows per read: every
+### order is counted (the same counts per Status as SalesByStatus), read from the layer below in pages of 4
+GET {{server}}/OrderTally?$apply=groupby((Status),aggregate($count as Orders))&$orderby=Status
+Authorization: {{alice}}
+
 
 ### -------------------------------------------------------------- Entries: writes through a second layer
 ### CDS copied @remote.write.asInsert / @remote.write.operation from OrderManagementService.Entries; the layer below

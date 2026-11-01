@@ -178,4 +178,11 @@ service OverviewService {
     entity Currencies     as select from catalog.Orders distinct {
         key Currency
     };
+
+    /**
+     * A layer over CatalogService.OrderPages, which answers at most 4 rows per read. A query's own GROUP BY here
+     * (`$apply=groupby(...)`) groups every order: the rows are read from the layer below in pages of its page size.
+     */
+    @readonly
+    entity OrderTally     as projection on catalog.OrderPages;
 }

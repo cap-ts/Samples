@@ -190,6 +190,7 @@ Where each feature of the package is shown. Model files are under `consumer/srv/
 | `cds.query.remote.aggregate.maxRows` (5000; profile `limits`: 3, more source rows is a 502) | `consumer/package.json` | `Limits.http` |
 | DISTINCT | `OverviewService.Currencies` | `OverviewService.http` |
 | GROUP BY written as `select from ... distinct { ... } group by` | `OverviewService.OrderMix` | `OverviewService.http` |
+| A query's own GROUP BY (`$apply`) on a layer whose source answers fewer rows per read (`@cds.query.limit.max`) | `OverviewService.OrderTally`, `CatalogService.OrderPages` | `OverviewService.http` |
 | Layered services, renames per layer | `OverviewService` on `CatalogService` | `OverviewService.http` |
 | `exists` flags (constant ON condition, infix filter, two hops), filter on a flag | `OverviewService.Customers`, `.OrderFlags` | `OverviewService.http` |
 | The projection's own WHERE: pushed, in memory, `$now`, to-one path; 404 outside | `OverviewService.OpenOrders` | `OverviewService.http` |

@@ -282,4 +282,18 @@ service CatalogService {
             OrderName      as Title,
             _Customer.Name as CustomerName
     };
+
+    /**
+     * A small page cap: CAP answers at most 4 rows per read of this entity, also to a layer above
+     * (OverviewService.OrderTally). A GROUP BY of a query on that layer still counts every order: the layer reads the
+     * rows in pages of 4.
+     */
+    @readonly
+    @cds.query.limit: { default: 4, max: 4 }
+    entity OrderPages      as projection on sales.Orders {
+        key ID,
+            Status,
+            Currency,
+            Amount
+    };
 }
